@@ -27,19 +27,12 @@ npx ts-node DayXX/solution.ts
 
 Simply open the `visualization.html` file in your web browser. No build server is required for the visualizations; they are self-contained.
 
-## 🌐 Live Demo & GitHub Pages
+## 🌐 Live Demo
 
-This project is set up to be hosted on **GitHub Pages**.
+You can view the live visualizations here:
+[**Advent of Code 2025 - Visualization Portal**](https://dsgj.github.io/Advent-of-Code/)
 
-1.  Go to your repository **Settings** > **Pages**.
-2.  Under **Build and deployment** > **Source**, select **Deploy from a branch**.
-3.  Select **main** branch and **/** (root) folder.
-4.  Click **Save**.
-
-Once deployed, your visualizations will be available at:
-`https://<your-username>.github.io/<repository-name>/`
-
-The root URL will load the **Project Portal** (`index.html`) linking to all days.
+The root URL loads the **Project Portal** (`index.html`) which links to all daily solutions.
 
 ## Visualizations Gallery
 
