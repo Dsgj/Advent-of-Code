@@ -40,10 +40,20 @@
         h1 {
             font-family: 'Oswald', sans-serif;
             font-size: 1.8rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.5rem;
             color: var(--accent);
             text-shadow: 0 0 20px var(--glow), 2px 2px 4px rgba(0, 0, 0, 0.5);
             letter-spacing: 3px;
+        }
+
+        .subtitle {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-size: 1rem;
+            color: var(--metal-light);
+            margin-bottom: 2rem;
+            text-align: center;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
         .container {
@@ -342,6 +352,7 @@
 
 <body>
     <h1>🔐 SECRET VAULT CRACKER 🔐</h1>
+    <p class="subtitle">Day 1 - HQ Coordinate Triangulation System</p>
 
     <div class="container">
         <div class="safe-body">
@@ -403,6 +414,19 @@
         const resetBtn = document.getElementById('resetBtn');
         const speedSlider = document.getElementById('speed');
         const inputArea = document.getElementById('inputArea');
+
+        const exampleData = `L68
+L30
+R48
+L5
+R60
+L55
+L1
+L99
+R14
+L82`;
+
+
 
         let position = 50;
         let part1Count = 0;
@@ -631,15 +655,8 @@
         createDialNumbers();
         updateDial();
 
-        // Load example input from file
-        fetch('exampleInput.txt')
-            .then(response => response.text())
-            .then(text => {
-                inputArea.value = text.trim();
-            })
-            .catch(() => {
-                inputArea.value = 'L68\nL30\nR48\nL5\nR60\nL55\nL1\nL99\nR14\nL82';
-            });
+        // Initialize with example data
+        inputArea.value = exampleData;
 
         runBtn.addEventListener('click', runAll);
         stepBtn.addEventListener('click', step);

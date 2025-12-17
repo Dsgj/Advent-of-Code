@@ -130,6 +130,16 @@
             text-shadow: 0 0 8px var(--glow-color);
         }
 
+        .subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--glow-color);
+        }
+
         /* Scanner Panel */
         .scanner-content {
             flex: 1;
@@ -367,6 +377,7 @@
  ╚═════╝ ╚═╝╚═╝        ╚═╝       ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     
             ══════ DATABASE SCANNER v2.0 ══════
             </pre>
+            <div class="subtitle">Day 2 - Inventory Anomaly Detection System</div>
 
             <div class="part-toggle">
                 <button class="btn part-btn active" data-part="1">Part 1</button>
@@ -424,421 +435,417 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <script>
-        // Example input
-        const EXAMPLE_INPUT = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
+        <script>
+            // Example input
+            const EXAMPLE_INPUT = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
 
-        // Real input
-        const REAL_INPUT = "9191906840-9191941337,7671-13230,2669677096-2669816099,2-12,229599-392092,48403409-48523311,96763-229430,1919163519-1919240770,74928-96389,638049-668065,34781-73835,736781-819688,831765539-831907263,5615884-5749554,14101091-14196519,7134383-7169141,413340-625418,849755289-849920418,7745350-7815119,16717-26267,4396832-4549887,87161544-87241541,4747436629-4747494891,335-549,867623-929630,53-77,1414-3089,940604-1043283,3444659-3500714,3629-7368,79-129,5488908-5597446,97922755-98097602,182-281,8336644992-8336729448,24-47,613-1077";
+            let currentPart = 1;
+            let ranges = [];
+            let invalidIds = [];
+            let currentRangeIndex = 0;
+            let currentInvalidIndex = 0;
+            let isRunning = false;
+            let animationTimeout = null;
+            let stats = { scanned: 0, invalid: 0, sum: 0n };
 
-        let currentPart = 1;
-        let ranges = [];
-        let invalidIds = [];
-        let currentRangeIndex = 0;
-        let currentInvalidIndex = 0;
-        let isRunning = false;
-        let animationTimeout = null;
-        let stats = { scanned: 0, invalid: 0, sum: 0n };
+            // DOM elements
+            const scanLines = document.getElementById('scanLines');
+            const patternDisplay = document.getElementById('patternDisplay');
+            const patternBreakdown = document.getElementById('patternBreakdown');
+            const patternInfo = document.getElementById('patternInfo');
+            const currentRangeEl = document.getElementById('currentRange');
+            const idsScannedEl = document.getElementById('idsScanned');
+            const invalidFoundEl = document.getElementById('invalidFound');
+            const totalSumEl = document.getElementById('totalSum');
+            const btnRun = document.getElementById('btnRun');
+            const btnStep = document.getElementById('btnStep');
+            const btnReset = document.getElementById('btnReset');
+            const speedSlider = document.getElementById('speedSlider');
 
-        // DOM elements
-        const scanLines = document.getElementById('scanLines');
-        const patternDisplay = document.getElementById('patternDisplay');
-        const patternBreakdown = document.getElementById('patternBreakdown');
-        const patternInfo = document.getElementById('patternInfo');
-        const currentRangeEl = document.getElementById('currentRange');
-        const idsScannedEl = document.getElementById('idsScanned');
-        const invalidFoundEl = document.getElementById('invalidFound');
-        const totalSumEl = document.getElementById('totalSum');
-        const btnRun = document.getElementById('btnRun');
-        const btnStep = document.getElementById('btnStep');
-        const btnReset = document.getElementById('btnReset');
-        const speedSlider = document.getElementById('speedSlider');
-
-        // Part 1: Check if number is pattern repeated exactly twice
-        function isInvalidPart1(numStr) {
-            const len = numStr.length;
-            if (len % 2 !== 0) return false;
-            const half = len / 2;
-            const first = numStr.substring(0, half);
-            const second = numStr.substring(half);
-            return first === second && first[0] !== '0';
-        }
-
-        // Part 2: Check if number is pattern repeated 2+ times
-        function isInvalidPart2(numStr) {
-            const len = numStr.length;
-            for (let patternLen = 1; patternLen <= len / 2; patternLen++) {
-                if (len % patternLen !== 0) continue;
-                const pattern = numStr.substring(0, patternLen);
-                if (pattern[0] === '0') continue;
-                let matches = true;
-                for (let i = patternLen; i < len; i += patternLen) {
-                    if (numStr.substring(i, i + patternLen) !== pattern) {
-                        matches = false;
-                        break;
-                    }
-                }
-                if (matches) return { valid: true, pattern, count: len / patternLen };
+            // Part 1: Check if number is pattern repeated exactly twice
+            function isInvalidPart1(numStr) {
+                const len = numStr.length;
+                if (len % 2 !== 0) return false;
+                const half = len / 2;
+                const first = numStr.substring(0, half);
+                const second = numStr.substring(half);
+                return first === second && first[0] !== '0';
             }
-            return { valid: false };
-        }
 
-        // Get pattern info for display
-        function getPatternInfo(numStr) {
-            const len = numStr.length;
-            for (let patternLen = 1; patternLen <= len / 2; patternLen++) {
-                if (len % patternLen !== 0) continue;
-                const pattern = numStr.substring(0, patternLen);
-                if (pattern[0] === '0') continue;
-                let matches = true;
-                for (let i = patternLen; i < len; i += patternLen) {
-                    if (numStr.substring(i, i + patternLen) !== pattern) {
-                        matches = false;
-                        break;
-                    }
-                }
-                if (matches) {
-                    return { pattern, count: len / patternLen };
-                }
-            }
-            return null;
-        }
-
-        // Parse ranges
-        function parseRanges(input) {
-            return input.split(',')
-                .filter(p => p.trim())
-                .map(p => {
-                    const [start, end] = p.trim().split('-');
-                    return { start: BigInt(start), end: BigInt(end) };
-                });
-        }
-
-        // Generate invalid numbers of specific length
-        function generateInvalidNumbers(totalDigits, part) {
-            const result = [];
-            const seen = new Set();
-
-            if (part === 1) {
-                if (totalDigits % 2 !== 0) return [];
-                const halfLen = totalDigits / 2;
-                const minHalf = halfLen === 1 ? 1n : 10n ** BigInt(halfLen - 1);
-                const maxHalf = 10n ** BigInt(halfLen) - 1n;
-                for (let h = minHalf; h <= maxHalf; h++) {
-                    const str = h.toString();
-                    const repeated = str + str;
-                    result.push(BigInt(repeated));
-                }
-            } else {
-                for (let patternLen = 1; patternLen <= totalDigits / 2; patternLen++) {
-                    if (totalDigits % patternLen !== 0) continue;
-                    const repetitions = totalDigits / patternLen;
-                    const minPattern = patternLen === 1 ? 1n : 10n ** BigInt(patternLen - 1);
-                    const maxPattern = 10n ** BigInt(patternLen) - 1n;
-                    for (let p = minPattern; p <= maxPattern; p++) {
-                        const patternStr = p.toString();
-                        const repeated = patternStr.repeat(repetitions);
-                        if (!seen.has(repeated)) {
-                            seen.add(repeated);
-                            result.push(BigInt(repeated));
+            // Part 2: Check if number is pattern repeated 2+ times
+            function isInvalidPart2(numStr) {
+                const len = numStr.length;
+                for (let patternLen = 1; patternLen <= len / 2; patternLen++) {
+                    if (len % patternLen !== 0) continue;
+                    const pattern = numStr.substring(0, patternLen);
+                    if (pattern[0] === '0') continue;
+                    let matches = true;
+                    for (let i = patternLen; i < len; i += patternLen) {
+                        if (numStr.substring(i, i + patternLen) !== pattern) {
+                            matches = false;
+                            break;
                         }
                     }
+                    if (matches) return { valid: true, pattern, count: len / patternLen };
                 }
+                return { valid: false };
             }
-            return result.sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
-        }
 
-        // Find all invalid IDs in ranges
-        function findAllInvalidIds(ranges, part) {
-            const result = [];
-            const seen = new Set();
+            // Get pattern info for display
+            function getPatternInfo(numStr) {
+                const len = numStr.length;
+                for (let patternLen = 1; patternLen <= len / 2; patternLen++) {
+                    if (len % patternLen !== 0) continue;
+                    const pattern = numStr.substring(0, patternLen);
+                    if (pattern[0] === '0') continue;
+                    let matches = true;
+                    for (let i = patternLen; i < len; i += patternLen) {
+                        if (numStr.substring(i, i + patternLen) !== pattern) {
+                            matches = false;
+                            break;
+                        }
+                    }
+                    if (matches) {
+                        return { pattern, count: len / patternLen };
+                    }
+                }
+                return null;
+            }
 
-            for (const range of ranges) {
-                const startLen = range.start.toString().length;
-                const endLen = range.end.toString().length;
-                const rangeInvalids = [];
+            // Parse ranges
+            function parseRanges(input) {
+                return input.split(',')
+                    .filter(p => p.trim())
+                    .map(p => {
+                        const [start, end] = p.trim().split('-');
+                        return { start: BigInt(start), end: BigInt(end) };
+                    });
+            }
 
-                for (let len = startLen; len <= endLen; len++) {
-                    const invalids = generateInvalidNumbers(len, part);
-                    for (const num of invalids) {
-                        if (num >= range.start && num <= range.end) {
-                            const key = num.toString();
-                            if (!seen.has(key)) {
-                                seen.add(key);
-                                rangeInvalids.push(num);
+            // Generate invalid numbers of specific length
+            function generateInvalidNumbers(totalDigits, part) {
+                const result = [];
+                const seen = new Set();
+
+                if (part === 1) {
+                    if (totalDigits % 2 !== 0) return [];
+                    const halfLen = totalDigits / 2;
+                    const minHalf = halfLen === 1 ? 1n : 10n ** BigInt(halfLen - 1);
+                    const maxHalf = 10n ** BigInt(halfLen) - 1n;
+                    for (let h = minHalf; h <= maxHalf; h++) {
+                        const str = h.toString();
+                        const repeated = str + str;
+                        result.push(BigInt(repeated));
+                    }
+                } else {
+                    for (let patternLen = 1; patternLen <= totalDigits / 2; patternLen++) {
+                        if (totalDigits % patternLen !== 0) continue;
+                        const repetitions = totalDigits / patternLen;
+                        const minPattern = patternLen === 1 ? 1n : 10n ** BigInt(patternLen - 1);
+                        const maxPattern = 10n ** BigInt(patternLen) - 1n;
+                        for (let p = minPattern; p <= maxPattern; p++) {
+                            const patternStr = p.toString();
+                            const repeated = patternStr.repeat(repetitions);
+                            if (!seen.has(repeated)) {
+                                seen.add(repeated);
+                                result.push(BigInt(repeated));
                             }
                         }
                     }
                 }
-                result.push({ range, invalids: rangeInvalids });
+                return result.sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
             }
-            return result;
-        }
 
-        // Format large numbers
-        function formatNumber(n) {
-            return n.toLocaleString();
-        }
+            // Find all invalid IDs in ranges
+            function findAllInvalidIds(ranges, part) {
+                const result = [];
+                const seen = new Set();
 
-        // Add scan line
-        function addScanLine(text, className = '') {
-            const line = document.createElement('div');
-            line.className = 'scan-line ' + className;
-            line.textContent = text;
-            scanLines.appendChild(line);
-            scanLines.scrollTop = scanLines.scrollHeight;
-        }
+                for (const range of ranges) {
+                    const startLen = range.start.toString().length;
+                    const endLen = range.end.toString().length;
+                    const rangeInvalids = [];
 
-        // Update pattern display
-        function showPattern(numStr) {
-            const info = getPatternInfo(numStr);
-            patternDisplay.textContent = numStr;
-
-            if (info) {
-                let breakdown = '';
-                for (let i = 0; i < info.count; i++) {
-                    breakdown += `<span class="pattern-part">${info.pattern}</span>`;
+                    for (let len = startLen; len <= endLen; len++) {
+                        const invalids = generateInvalidNumbers(len, part);
+                        for (const num of invalids) {
+                            if (num >= range.start && num <= range.end) {
+                                const key = num.toString();
+                                if (!seen.has(key)) {
+                                    seen.add(key);
+                                    rangeInvalids.push(num);
+                                }
+                            }
+                        }
+                    }
+                    result.push({ range, invalids: rangeInvalids });
                 }
-                patternBreakdown.innerHTML = breakdown;
-                patternInfo.textContent = `Pattern "${info.pattern}" × ${info.count}`;
+                return result;
             }
-        }
 
-        // Get speed from slider
-        function getDelay() {
-            return 1000 - (speedSlider.value * 9);
-        }
+            // Format large numbers
+            function formatNumber(n) {
+                return n.toLocaleString();
+            }
 
-        // Build a step-by-step animation queue that shows the algorithm
-        let animationQueue = [];
-        let queueIndex = 0;
+            // Add scan line
+            function addScanLine(text, className = '') {
+                const line = document.createElement('div');
+                line.className = 'scan-line ' + className;
+                line.textContent = text;
+                scanLines.appendChild(line);
+                scanLines.scrollTop = scanLines.scrollHeight;
+            }
 
-        function buildAnimationQueue(ranges, part) {
-            const queue = [];
-            const seen = new Set();
-            let totalSum = 0n;
-            let totalInvalid = 0;
+            // Update pattern display
+            function showPattern(numStr) {
+                const info = getPatternInfo(numStr);
+                patternDisplay.textContent = numStr;
 
-            for (let rangeIdx = 0; rangeIdx < ranges.length; rangeIdx++) {
-                const range = ranges[rangeIdx];
-                const startLen = range.start.toString().length;
-                const endLen = range.end.toString().length;
+                if (info) {
+                    let breakdown = '';
+                    for (let i = 0; i < info.count; i++) {
+                        breakdown += `<span class="pattern-part">${info.pattern}</span>`;
+                    }
+                    patternBreakdown.innerHTML = breakdown;
+                    patternInfo.textContent = `Pattern "${info.pattern}" × ${info.count}`;
+                }
+            }
 
-                // Step: Show which range we're processing
+            // Get speed from slider
+            function getDelay() {
+                return 1000 - (speedSlider.value * 9);
+            }
+
+            // Build a step-by-step animation queue that shows the algorithm
+            let animationQueue = [];
+            let queueIndex = 0;
+
+            function buildAnimationQueue(ranges, part) {
+                const queue = [];
+                const seen = new Set();
+                let totalSum = 0n;
+                let totalInvalid = 0;
+
+                for (let rangeIdx = 0; rangeIdx < ranges.length; rangeIdx++) {
+                    const range = ranges[rangeIdx];
+                    const startLen = range.start.toString().length;
+                    const endLen = range.end.toString().length;
+
+                    // Step: Show which range we're processing
+                    queue.push({
+                        type: 'range-start',
+                        rangeIdx,
+                        totalRanges: ranges.length,
+                        range,
+                        startLen,
+                        endLen
+                    });
+
+                    let foundInRange = false;
+
+                    // For each digit length
+                    for (let len = startLen; len <= endLen; len++) {
+                        // Check if this length can have invalid patterns
+                        const hasPatterns = part === 1 ? (len % 2 === 0) : (len >= 2);
+
+                        if (!hasPatterns) continue;
+
+                        // Step: Show which length we're generating
+                        queue.push({
+                            type: 'length-check',
+                            len,
+                            part
+                        });
+
+                        // Generate invalid numbers of this length
+                        const invalids = generateInvalidNumbers(len, part);
+
+                        // Step: Show how many patterns of this length exist
+                        queue.push({
+                            type: 'patterns-generated',
+                            len,
+                            count: invalids.length
+                        });
+
+                        // Check each invalid number against the range
+                        for (const num of invalids) {
+                            if (num >= range.start && num <= range.end) {
+                                const key = num.toString();
+                                if (!seen.has(key)) {
+                                    seen.add(key);
+                                    totalInvalid++;
+                                    totalSum += num;
+                                    foundInRange = true;
+
+                                    // Step: Found an invalid ID in range!
+                                    queue.push({
+                                        type: 'found-invalid',
+                                        num,
+                                        totalInvalid,
+                                        totalSum
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    if (!foundInRange) {
+                        queue.push({
+                            type: 'no-invalid-in-range'
+                        });
+                    }
+                }
+
+                // Final step
                 queue.push({
-                    type: 'range-start',
-                    rangeIdx,
-                    totalRanges: ranges.length,
-                    range,
-                    startLen,
-                    endLen
+                    type: 'complete',
+                    totalInvalid,
+                    totalSum
                 });
 
-                let foundInRange = false;
-
-                // For each digit length
-                for (let len = startLen; len <= endLen; len++) {
-                    // Check if this length can have invalid patterns
-                    const hasPatterns = part === 1 ? (len % 2 === 0) : (len >= 2);
-
-                    if (!hasPatterns) continue;
-
-                    // Step: Show which length we're generating
-                    queue.push({
-                        type: 'length-check',
-                        len,
-                        part
-                    });
-
-                    // Generate invalid numbers of this length
-                    const invalids = generateInvalidNumbers(len, part);
-
-                    // Step: Show how many patterns of this length exist
-                    queue.push({
-                        type: 'patterns-generated',
-                        len,
-                        count: invalids.length
-                    });
-
-                    // Check each invalid number against the range
-                    for (const num of invalids) {
-                        if (num >= range.start && num <= range.end) {
-                            const key = num.toString();
-                            if (!seen.has(key)) {
-                                seen.add(key);
-                                totalInvalid++;
-                                totalSum += num;
-                                foundInRange = true;
-
-                                // Step: Found an invalid ID in range!
-                                queue.push({
-                                    type: 'found-invalid',
-                                    num,
-                                    totalInvalid,
-                                    totalSum
-                                });
-                            }
-                        }
-                    }
-                }
-
-                if (!foundInRange) {
-                    queue.push({
-                        type: 'no-invalid-in-range'
-                    });
-                }
+                return queue;
             }
 
-            // Final step
-            queue.push({
-                type: 'complete',
-                totalInvalid,
-                totalSum
-            });
-
-            return queue;
-        }
-
-        // Process one step from the queue
-        function step() {
-            if (queueIndex >= animationQueue.length) {
-                isRunning = false;
-                btnRun.textContent = '▶ Run';
-                return false;
-            }
-
-            const item = animationQueue[queueIndex];
-            queueIndex++;
-
-            switch (item.type) {
-                case 'range-start':
-                    addScanLine('');
-                    addScanLine(`▸ RANGE ${item.rangeIdx + 1}/${item.totalRanges}: ${item.range.start.toString()} → ${item.range.end.toString()}`, 'range-header');
-                    addScanLine(`  Checking digit lengths: ${item.startLen} to ${item.endLen}`, 'valid');
-                    currentRangeEl.textContent = `${item.rangeIdx + 1}/${item.totalRanges}`;
-                    patternDisplay.textContent = '...';
-                    patternBreakdown.innerHTML = '';
-                    patternInfo.textContent = 'Analyzing range...';
-                    break;
-
-                case 'length-check':
-                    const desc = item.part === 1
-                        ? `(pattern × 2)`
-                        : `(pattern × 2+)`;
-                    addScanLine(`  → Length ${item.len} ${desc}`, 'valid');
-                    break;
-
-                case 'patterns-generated':
-                    addScanLine(`    Generated ${item.count} candidate patterns`, 'valid');
-                    stats.scanned += item.count;
-                    idsScannedEl.textContent = formatNumber(stats.scanned);
-                    break;
-
-                case 'found-invalid':
-                    const numStr = item.num.toString();
-                    addScanLine(`    ✓ FOUND: ${numStr}`, 'invalid');
-                    showPattern(numStr);
-                    stats.invalid = item.totalInvalid;
-                    stats.sum = item.totalSum;
-                    invalidFoundEl.textContent = formatNumber(stats.invalid);
-                    totalSumEl.textContent = stats.sum.toString();
-                    break;
-
-                case 'no-invalid-in-range':
-                    addScanLine(`  ✗ No invalid IDs in this range`, 'valid');
-                    break;
-
-                case 'complete':
-                    addScanLine('');
-                    addScanLine('════════════════════════════════════════');
-                    addScanLine(`SCAN COMPLETE`, 'active');
-                    addScanLine(`Total Invalid IDs: ${item.totalInvalid}`, 'active');
-                    addScanLine(`Sum: ${item.totalSum.toString()}`, 'active');
+            // Process one step from the queue
+            function step() {
+                if (queueIndex >= animationQueue.length) {
                     isRunning = false;
                     btnRun.textContent = '▶ Run';
-                    break;
+                    return false;
+                }
+
+                const item = animationQueue[queueIndex];
+                queueIndex++;
+
+                switch (item.type) {
+                    case 'range-start':
+                        addScanLine('');
+                        addScanLine(`▸ RANGE ${item.rangeIdx + 1}/${item.totalRanges}: ${item.range.start.toString()} → ${item.range.end.toString()}`, 'range-header');
+                        addScanLine(`  Checking digit lengths: ${item.startLen} to ${item.endLen}`, 'valid');
+                        currentRangeEl.textContent = `${item.rangeIdx + 1}/${item.totalRanges}`;
+                        patternDisplay.textContent = '...';
+                        patternBreakdown.innerHTML = '';
+                        patternInfo.textContent = 'Analyzing range...';
+                        break;
+
+                    case 'length-check':
+                        const desc = item.part === 1
+                            ? `(pattern × 2)`
+                            : `(pattern × 2+)`;
+                        addScanLine(`  → Length ${item.len} ${desc}`, 'valid');
+                        break;
+
+                    case 'patterns-generated':
+                        addScanLine(`    Generated ${item.count} candidate patterns`, 'valid');
+                        stats.scanned += item.count;
+                        idsScannedEl.textContent = formatNumber(stats.scanned);
+                        break;
+
+                    case 'found-invalid':
+                        const numStr = item.num.toString();
+                        addScanLine(`    ✓ FOUND: ${numStr}`, 'invalid');
+                        showPattern(numStr);
+                        stats.invalid = item.totalInvalid;
+                        stats.sum = item.totalSum;
+                        invalidFoundEl.textContent = formatNumber(stats.invalid);
+                        totalSumEl.textContent = stats.sum.toString();
+                        break;
+
+                    case 'no-invalid-in-range':
+                        addScanLine(`  ✗ No invalid IDs in this range`, 'valid');
+                        break;
+
+                    case 'complete':
+                        addScanLine('');
+                        addScanLine('════════════════════════════════════════');
+                        addScanLine(`SCAN COMPLETE`, 'active');
+                        addScanLine(`Total Invalid IDs: ${item.totalInvalid}`, 'active');
+                        addScanLine(`Sum: ${item.totalSum.toString()}`, 'active');
+                        isRunning = false;
+                        btnRun.textContent = '▶ Run';
+                        break;
+                }
+
+                return true;
             }
 
-            return true;
-        }
-
-        // Run animation
-        function run() {
-            if (step()) {
-                animationTimeout = setTimeout(run, getDelay());
+            // Run animation
+            function run() {
+                if (step()) {
+                    animationTimeout = setTimeout(run, getDelay());
+                }
             }
-        }
 
-        // Initialize
-        function init() {
-            ranges = parseRanges(REAL_INPUT);
-            animationQueue = buildAnimationQueue(ranges, currentPart);
-            queueIndex = 0;
-            stats = { scanned: 0, invalid: 0, sum: 0n };
+            // Initialize
+            function init() {
+                ranges = parseRanges(EXAMPLE_INPUT);
+                animationQueue = buildAnimationQueue(ranges, currentPart);
+                queueIndex = 0;
+                stats = { scanned: 0, invalid: 0, sum: 0n };
 
-            scanLines.innerHTML = '';
-            addScanLine('NORTH POLE GIFT SHOP - DATABASE AUDIT SYSTEM');
-            addScanLine('════════════════════════════════════════════');
-            addScanLine(`Loading ${ranges.length} product ID ranges...`);
-            addScanLine(`Mode: Part ${currentPart} (pattern × ${currentPart === 1 ? '2' : '2+'})`);
-            addScanLine('');
-            addScanLine('Algorithm: Generate invalid patterns by length,');
-            addScanLine('           then check if they fall within range.');
-            addScanLine('');
-            addScanLine('Ready. Press RUN or STEP to begin.');
+                scanLines.innerHTML = '';
+                addScanLine('NORTH POLE GIFT SHOP - DATABASE AUDIT SYSTEM');
+                addScanLine('════════════════════════════════════════════');
+                addScanLine(`Loading ${ranges.length} product ID ranges...`);
+                addScanLine(`Mode: Part ${currentPart} (pattern × ${currentPart === 1 ? '2' : '2+'})`);
+                addScanLine('');
+                addScanLine('Algorithm: Generate invalid patterns by length,');
+                addScanLine('           then check if they fall within range.');
+                addScanLine('');
+                addScanLine('Ready. Press RUN or STEP to begin.');
 
-            patternDisplay.textContent = '---';
-            patternBreakdown.innerHTML = '';
-            patternInfo.textContent = 'Waiting for analysis...';
-            currentRangeEl.textContent = '-';
-            idsScannedEl.textContent = '0';
-            invalidFoundEl.textContent = '0';
-            totalSumEl.textContent = '0';
-        }
-
-        // Event listeners
-        btnRun.addEventListener('click', () => {
-            if (isRunning) {
-                isRunning = false;
-                clearTimeout(animationTimeout);
-                btnRun.textContent = '▶ Run';
-            } else {
-                isRunning = true;
-                btnRun.textContent = '⏸ Pause';
-                run();
+                patternDisplay.textContent = '---';
+                patternBreakdown.innerHTML = '';
+                patternInfo.textContent = 'Waiting for analysis...';
+                currentRangeEl.textContent = '-';
+                idsScannedEl.textContent = '0';
+                invalidFoundEl.textContent = '0';
+                totalSumEl.textContent = '0';
             }
-        });
 
-        btnStep.addEventListener('click', () => {
-            if (!isRunning) {
-                step();
-            }
-        });
+            // Event listeners
+            btnRun.addEventListener('click', () => {
+                if (isRunning) {
+                    isRunning = false;
+                    clearTimeout(animationTimeout);
+                    btnRun.textContent = '▶ Run';
+                } else {
+                    isRunning = true;
+                    btnRun.textContent = '⏸ Pause';
+                    run();
+                }
+            });
 
-        btnReset.addEventListener('click', () => {
-            isRunning = false;
-            clearTimeout(animationTimeout);
-            btnRun.textContent = '▶ Run';
-            init();
-        });
+            btnStep.addEventListener('click', () => {
+                if (!isRunning) {
+                    step();
+                }
+            });
 
-        document.querySelectorAll('.part-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.part-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentPart = parseInt(btn.dataset.part);
+            btnReset.addEventListener('click', () => {
                 isRunning = false;
                 clearTimeout(animationTimeout);
                 btnRun.textContent = '▶ Run';
                 init();
             });
-        });
 
-        // Initialize on load
-        init();
-    </script>
+            document.querySelectorAll('.part-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.part-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentPart = parseInt(btn.dataset.part);
+                    isRunning = false;
+                    clearTimeout(animationTimeout);
+                    btnRun.textContent = '▶ Run';
+                    init();
+                });
+            });
+
+            // Initialize on load
+            init();
+        </script>
 </body>
 
 </html>

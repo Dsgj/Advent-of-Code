@@ -445,10 +445,6 @@
                 <button id="part1Btn" class="active">Part 1 (2 batteries)</button>
                 <button id="part2Btn">Part 2 (12 batteries)</button>
             </div>
-            <div class="part-toggle">
-                <button id="exampleBtn" class="active">Example</button>
-                <button id="realBtn">Real Input</button>
-            </div>
         </div>
 
         <div class="bank-panel">
@@ -528,17 +524,7 @@
 234234234234278
 818181911112111`;
 
-        // Real input embedded directly (fetch doesn't work with file:// protocol)
-        const REAL_INPUT = `2215452689925244273244333436189317446384838478525478824435233342352236255624326767355438753493222423
-1222232323222232132222323221226222225212221213232122232311152232223212123622111212223162322221323211
-3786645737446363554463656544667372864465545434545435744345766553343446943531537627746253556233634463
-8453332352565142143524531446335443437325325152243234623554533532314513854524534532534224242344434525
-3533243449264427643542468452244718248315345733634133352136441275626213553347866334222454323754335453
-5535625542655597356352273256244443153325356634941773484673334456353334423458343574664633345343665513
-2252332222532292346231412134324235332443333323223313377333323737314334332224532223813332224315253334
-6122221212223222221222221122232243223216125222134222113211222222222223423221222333331212121221212222
-3373117222222512252222213221487225222222122214221232724313232124722214335222282233236222232242227374
-4324221311332133124311141233224134334423134124444233221233312314231241241143121423121121431142256789`;
+
 
         // State
         let banks = [];
@@ -565,12 +551,7 @@
         const speedSlider = document.getElementById('speedSlider');
         const part1Btn = document.getElementById('part1Btn');
         const part2Btn = document.getElementById('part2Btn');
-        const exampleBtn = document.getElementById('exampleBtn');
-        const realBtn = document.getElementById('realBtn');
-        const algorithmSteps = ['step1', 'step2', 'step3', 'step4'].map(id => document.getElementById(id));
 
-        // Track which input source is active
-        let useExample = true;
 
         function parseInput(input) {
             return input.trim().split('\n').map(line => line.trim()).filter(line => line.length > 0);
@@ -782,7 +763,7 @@
         }
 
         function init() {
-            const input = useExample ? EXAMPLE_INPUT : REAL_INPUT;
+            const input = EXAMPLE_INPUT;
             banks = parseInput(input);
             const count = currentPart === 1 ? 2 : 12;
 
@@ -879,16 +860,6 @@
             if (!useExample) {
                 useExample = true;
                 exampleBtn.classList.add('active');
-                realBtn.classList.remove('active');
-                init();
-            }
-        });
-
-        realBtn.addEventListener('click', () => {
-            if (useExample && REAL_INPUT) {
-                useExample = false;
-                realBtn.classList.add('active');
-                exampleBtn.classList.remove('active');
                 init();
             }
         });
