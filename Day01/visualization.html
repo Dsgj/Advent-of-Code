@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advent of Code - Day 01 - Secret Entrance</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500&display=swap');
+
+        :root {
+            --bg-dark: #0a0f1a;
+            --metal-light: #7a8a9a;
+            --metal-mid: #4a5a6a;
+            --metal-dark: #2a3a4a;
+            --accent: #00d4ff;
+            --accent-light: #66e5ff;
+            --zero-highlight: #00ff88;
+            --text-color: #e0f0ff;
+            --glow: rgba(0, 212, 255, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a1628 0%, #0d1f3c 50%, #061224 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            color: var(--accent);
+            text-shadow: 0 0 20px var(--glow), 2px 2px 4px rgba(0, 0, 0, 0.5);
+            letter-spacing: 3px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .safe-body {
+            background: linear-gradient(145deg, #1a2a4a 0%, #0d1a30 50%, #061020 100%);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow:
+                inset 0 2px 10px rgba(0, 212, 255, 0.05),
+                inset 0 -5px 20px rgba(0, 0, 0, 0.5),
+                0 20px 60px rgba(0, 0, 0, 0.8),
+                0 0 0 4px #1a2a3a,
+                0 0 0 8px #0a1520,
+                0 0 40px var(--glow);
+        }
+
+        .dial-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+        }
+
+        /* Outer ring - the fixed part with the indicator */
+        .dial-outer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #3a4a5a 0%, #2a3a4a 50%, #1a2a3a 100%);
+            box-shadow:
+                inset 0 5px 15px rgba(0, 212, 255, 0.1),
+                inset 0 -5px 15px rgba(0, 0, 0, 0.5),
+                0 10px 30px rgba(0, 0, 0, 0.5),
+                0 0 20px var(--glow);
+        }
+
+        /* The indicator arrow at the top */
+        .indicator {
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 25px solid var(--accent);
+            filter: drop-shadow(0 0 8px var(--accent));
+            z-index: 20;
+        }
+
+        /* The rotating dial */
+        .dial {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 30% 30%, #777 0%, #555 30%, #444 60%, #333 100%);
+            box-shadow:
+                inset 0 5px 20px rgba(255, 255, 255, 0.3),
+                inset 0 -5px 20px rgba(0, 0, 0, 0.5),
+                0 0 0 3px #2a2a2a,
+                0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.15s ease-out;
+        }
+
+        /* Knurled edge texture */
+        .dial::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            border-radius: 50%;
+            background: repeating-conic-gradient(from 0deg,
+                    #555 0deg 1.8deg,
+                    #444 1.8deg 3.6deg);
+            opacity: 0.5;
+        }
+
+        /* Inner dial face */
+        .dial-face {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            width: 230px;
+            height: 230px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 40% 40%, #666 0%, #4a4a4a 40%, #333 100%);
+            box-shadow:
+                inset 0 3px 10px rgba(255, 255, 255, 0.2),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .dial-number {
+            position: absolute;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #ddd;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .dial-number.zero {
+            color: var(--zero-highlight);
+            font-size: 1.1rem;
+            text-shadow: 0 0 10px var(--zero-highlight), 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .dial-number.current {
+            color: var(--gold-light);
+            font-size: 1rem;
+            text-shadow: 0 0 8px var(--gold);
+        }
+
+        .dial-tick {
+            position: absolute;
+            width: 2px;
+            height: 8px;
+            background: #888;
+            transform-origin: center 105px;
+        }
+
+        .dial-tick.major {
+            width: 3px;
+            height: 12px;
+            background: #aaa;
+        }
+
+        .center-hub {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 60px;
+            height: 60px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 30% 30%, var(--accent-light) 0%, var(--accent) 50%, #0088aa 100%);
+            box-shadow:
+                inset 0 3px 8px rgba(255, 255, 255, 0.4),
+                inset 0 -3px 8px rgba(0, 0, 0, 0.3),
+                0 4px 10px rgba(0, 0, 0, 0.5),
+                0 0 15px var(--glow);
+            z-index: 10;
+        }
+
+        .center-hub::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 30% 30%, #333 0%, #1a1a1a 100%);
+            box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.2);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .stat-box {
+            background: linear-gradient(145deg, #1a2a3a, #0d1a28);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #2a4a6a;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: 2rem;
+            color: var(--accent);
+        }
+
+        .stat-value.zero-count {
+            color: var(--zero-highlight);
+            text-shadow: 0 0 10px var(--zero-highlight);
+        }
+
+        .instruction {
+            font-size: 1.2rem;
+            font-family: monospace;
+            background: #0a1520;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--accent);
+            min-width: 80px;
+            text-align: center;
+            color: var(--accent);
+            text-shadow: 0 0 5px var(--glow);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            background: linear-gradient(145deg, var(--accent-light), var(--accent));
+            color: #0a1520;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3), 0 0 10px var(--glow);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px var(--glow), 0 0 20px var(--glow);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        textarea {
+            width: 100%;
+            max-width: 400px;
+            height: 120px;
+            background: #222;
+            border: 1px solid #444;
+            color: #0f0;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #888;
+        }
+
+        input[type="range"] {
+            width: 100px;
+            accent-color: var(--gold);
+        }
+
+        .flash .dial {
+            animation: flash 0.3s ease-out;
+        }
+
+        @keyframes flash {
+
+            0%,
+            100% {
+                box-shadow: inset 0 5px 20px rgba(255, 255, 255, 0.3), inset 0 -5px 20px rgba(0, 0, 0, 0.5);
+            }
+
+            50% {
+                box-shadow: inset 0 0 30px rgba(0, 255, 0, 0.3), 0 0 20px rgba(0, 255, 0, 0.5);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔐 SECRET VAULT CRACKER 🔐</h1>
+
+    <div class="container">
+        <div class="safe-body">
+            <div class="dial-container" id="dialContainer">
+                <div class="dial-outer">
+                    <div class="indicator"></div>
+                </div>
+                <div class="dial" id="dial">
+                    <div class="dial-face" id="dialFace"></div>
+                </div>
+                <div class="center-hub"></div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-label">Instruction</div>
+                <div class="instruction" id="instruction">-</div>
+            </div>
+            <div class="stat-box">
+
+                <div class="stat-label">Position</div>
+                <div class="stat-value" id="position">50</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Part 1</div>
+                <div class="stat-value zero-count" id="part1">0</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-label">Part 2</div>
+                <div class="stat-value zero-count" id="part2">0</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="runBtn">▶ Run</button>
+            <button id="stepBtn">⏭ Step</button>
+            <button id="resetBtn">🔄 Reset</button>
+            <div class="speed-control">
+                <label>Speed:</label>
+                <input type="range" id="speed" min="10" max="500" value="200">
+            </div>
+        </div>
+
+        <textarea id="inputArea" placeholder="Loading example..."></textarea>
+    </div>
+
+    <script>
+        const dial = document.getElementById('dial');
+        const dialFace = document.getElementById('dialFace');
+        const dialContainer = document.getElementById('dialContainer');
+        const positionEl = document.getElementById('position');
+        const part1El = document.getElementById('part1');
+        const part2El = document.getElementById('part2');
+        const instructionEl = document.getElementById('instruction');
+        const runBtn = document.getElementById('runBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const speedSlider = document.getElementById('speed');
+        const inputArea = document.getElementById('inputArea');
+
+        let position = 50;
+        let part1Count = 0;
+        let part2Count = 0;
+        let instructions = [];
+        let currentIndex = 0;
+        let isRunning = false;
+        let isPaused = false;
+        let isExecuting = false;
+        let stepOnce = false;
+        let fastMode = false;  // Flag for fast 0.1s animation
+
+        function createDialNumbers() {
+            const faceCenter = 115;
+
+            for (let i = 0; i < 100; i++) {
+                // Dial rotates, so position numbers relative to dial, not screen
+                const angle = (i * 3.6 - 90) * Math.PI / 180;
+
+                // Add tick marks
+                const tick = document.createElement('div');
+                tick.className = 'dial-tick' + (i % 5 === 0 ? ' major' : '');
+                tick.style.left = `${faceCenter}px`;
+                tick.style.top = '10px';
+                tick.style.transform = `rotate(${i * 3.6}deg)`;
+                dialFace.appendChild(tick);
+
+                // Add numbers every 5
+                if (i % 5 === 0) {
+                    const radius = 85;
+                    const x = faceCenter + radius * Math.cos(angle);
+                    const y = faceCenter + radius * Math.sin(angle);
+                    const rotationAngle = i * 3.6; // Rotate number to point outward
+
+                    const numEl = document.createElement('div');
+                    numEl.className = 'dial-number' + (i === 0 ? ' zero' : '');
+                    numEl.textContent = i;
+                    numEl.style.left = `${x}px`;
+                    numEl.style.top = `${y}px`;
+                    numEl.style.transform = `translate(-50%, -50%) rotate(${rotationAngle}deg)`;
+                    numEl.id = `num-${i}`;
+                    dialFace.appendChild(numEl);
+                }
+            }
+        }
+
+        function updateDial() {
+            // Rotate the dial so current position aligns with top indicator
+            // When position is 50, dial should show 50 at top
+            const rotation = -position * 3.6;
+            dial.style.transform = `rotate(${rotation}deg)`;
+            positionEl.textContent = position;
+
+            // Update highlighting
+            document.querySelectorAll('.dial-number').forEach(el => {
+                el.classList.remove('current');
+            });
+            const nearestFive = Math.round(position / 5) * 5 % 100;
+            const numEl = document.getElementById(`num-${nearestFive}`);
+            if (numEl && Math.abs(position - nearestFive) <= 2) {
+                numEl.classList.add('current');
+            }
+        }
+
+        function parseInstructions() {
+            const text = inputArea.value.trim();
+            instructions = text.split(/\r?\n/).filter(line => line.trim());
+            currentIndex = 0;
+        }
+
+        function reset() {
+            position = 50;
+            part1Count = 0;
+            part2Count = 0;
+            currentIndex = 0;
+            isRunning = false;
+            updateDial();
+            part1El.textContent = '0';
+            part2El.textContent = '0';
+            instructionEl.textContent = '-';
+            runBtn.disabled = false;
+            stepBtn.disabled = false;
+        }
+
+        async function executeInstruction(inst) {
+            const direction = inst[0];
+            const amount = parseInt(inst.substring(1));
+            instructionEl.textContent = inst;
+
+            // Fast mode: 100ms total, Normal: based on speed slider
+            const totalTime = fastMode ? 100 : (510 - speedSlider.value) * (amount / 10);
+            const delay = Math.max(1, totalTime / amount);
+
+            for (let i = 0; i < amount; i++) {
+                if (direction === 'R') {
+                    position = (position + 1) % 100;
+                } else if (direction === 'L') {
+                    position = position - 1;
+                    if (position < 0) position = 99;
+                }
+
+                if (position === 0) {
+                    part2Count++;
+                    part2El.textContent = part2Count;
+                    if (!fastMode) {
+                        dialContainer.classList.add('flash');
+                        setTimeout(() => dialContainer.classList.remove('flash'), 300);
+                    }
+                }
+
+                updateDial();
+                await new Promise(r => setTimeout(r, delay));
+            }
+
+            if (position === 0) {
+                part1Count++;
+                part1El.textContent = part1Count;
+            }
+        }
+
+        async function runAll() {
+            if (isExecuting) return;  // Prevent starting while step is executing
+
+            if (isRunning && !isPaused) {
+                // Pause
+                isPaused = true;
+                runBtn.textContent = '▶ Resume';
+                stepBtn.disabled = false;  // Enable step while paused
+                return;
+            }
+
+            if (isPaused) {
+                // Resume
+                isPaused = false;
+                runBtn.textContent = '⏸ Pause';
+                stepBtn.disabled = true;  // Disable step while running
+                return;
+            }
+
+            // Start fresh
+            parseInstructions();
+            reset();
+            isRunning = true;
+            isPaused = false;
+            runBtn.textContent = '⏸ Pause';
+            stepBtn.disabled = true;
+
+            while (currentIndex < instructions.length) {
+                if (!isRunning) break;
+
+                const inst = instructions[currentIndex];
+                await executeInstruction(inst);
+                currentIndex++;
+
+                // Check for pause AFTER instruction completes
+                const shouldPauseAfter = stepOnce;
+                stepOnce = false;
+
+                if (shouldPauseAfter || isPaused) {
+                    isPaused = true;
+                    runBtn.textContent = '▶ Resume';
+                    stepBtn.disabled = false;
+
+                    // Wait while paused (unless stepOnce signals to continue)
+                    while (isPaused && isRunning && !stepOnce) {
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+
+                    if (stepOnce) {
+                        // Continue but will pause after next instruction
+                    }
+                }
+
+                fastMode = false;  // Reset fast mode after each instruction
+
+                await new Promise(r => setTimeout(r, 100));
+            }
+
+            isRunning = false;
+            isPaused = false;
+            instructionEl.textContent = '✓';
+            runBtn.textContent = '▶ Run';
+            stepBtn.disabled = false;
+        }
+
+        async function step() {
+            // If animation is running, speed it up and prepare to pause after
+            if (isRunning && !isPaused) {
+                fastMode = true;
+                isPaused = true;  // Will pause after current instruction completes
+                return;
+            }
+
+            // If we're in a paused run, run one instruction fast
+            if (isRunning && isPaused) {
+                fastMode = true;
+                stepOnce = true;
+                return;
+            }
+
+            // Standalone step (not during run)
+            if (isExecuting) return;
+            if (currentIndex === 0) parseInstructions();
+            if (currentIndex >= instructions.length) {
+                instructionEl.textContent = '✓';
+                return;
+            }
+            isExecuting = true;
+            fastMode = true;  // Always use fast animation for step
+            stepBtn.disabled = true;
+            runBtn.disabled = true;
+
+            await executeInstruction(instructions[currentIndex]);
+            currentIndex++;
+
+            isExecuting = false;
+            fastMode = false;
+            stepBtn.disabled = false;
+            runBtn.disabled = false;
+
+            if (currentIndex >= instructions.length) {
+                instructionEl.textContent = '✓';
+            }
+        }
+
+        createDialNumbers();
+        updateDial();
+
+        // Load example input from file
+        fetch('exampleInput.txt')
+            .then(response => response.text())
+            .then(text => {
+                inputArea.value = text.trim();
+            })
+            .catch(() => {
+                inputArea.value = 'L68\nL30\nR48\nL5\nR60\nL55\nL1\nL99\nR14\nL82';
+            });
+
+        runBtn.addEventListener('click', runAll);
+        stepBtn.addEventListener('click', step);
+        resetBtn.addEventListener('click', reset);
+    </script>
+</body>
+
+</html>
