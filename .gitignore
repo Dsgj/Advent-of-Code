@@ -23,9 +23,9 @@ yarn-debug.log*
 
 # Advent of Code specific
 # It is generally requested by the creator of AoC not to share puzzle inputs publicly
-input.txt
-**/*input.txt
-**/*Input.txt
+# input.txt
+# **/*input.txt
+# **/*Input.txt
 
 # Temporary/Agent files
 .gemini/

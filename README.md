@@ -32,7 +32,7 @@ Simply open the `visualization.html` file in your web browser. No build server i
 You can view the live visualizations here:
 [**Advent of Code 2025 - Visualization Portal**](https://dsgj.github.io/Advent-of-Code/)
 
-The root URL loads the **Project Portal** (`index.html`) which links to all daily solutions.
+The root URL loads the **Project Portal** ([`index.html`](https://github.com/Dsgj/Advent-of-Code/blob/main/index.html)) which links to all daily solutions.
 
 ## Visualizations Gallery
 
