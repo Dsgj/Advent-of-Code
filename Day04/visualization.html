@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advent of Code - Day 04 - Print Shop</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@300&display=swap');
+
+        :root {
+            --bg-color: #050a10;
+            --grid-bg: #0d1218;
+            --text-color: #a0c0e0;
+            --accent: #ffaa00;
+            --accent-glow: rgba(255, 170, 0, 0.4);
+            --safe-green: #00ff99;
+            --safe-glow: rgba(0, 255, 153, 0.4);
+            --danger-red: #ff3333;
+            --border-color: #1a2a3a;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Roboto Mono', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.5rem;
+            /* Reduced padding */
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            /* Prevent body scroll, handle inside grid */
+        }
+
+        header {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            /* Reduced margin */
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.25rem;
+            /* Reduced padding */
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--accent);
+            text-shadow: 0 0 10px var(--accent-glow);
+            font-size: 1.2rem;
+            /* Reduced font size */
+            margin: 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background: rgba(255, 170, 0, 0.1);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        button.active {
+            background: var(--safe-green);
+            border-color: var(--safe-green);
+            color: #000;
+        }
+
+        #main-layout {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1200px;
+            flex: 1;
+            gap: 1rem;
+            overflow: hidden;
+        }
+
+        #input-panel {
+            display: none;
+            /* Hidden by default when running */
+        }
+
+        #input-panel.visible {
+            display: block;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: #111;
+            color: #ccc;
+            border: 1px solid var(--border-color);
+            font-family: inherit;
+            padding: 0.5rem;
+            resize: none;
+        }
+
+        #stats-bar {
+            display: flex;
+            gap: 2rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-item span {
+            color: var(--safe-green);
+            text-shadow: 0 0 8px var(--safe-glow);
+        }
+
+        /* Responsive Grid Container */
+        #grid-wrapper {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--grid-bg);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            /* No scroll here either, fit logic applies */
+            position: relative;
+            border-radius: 8px;
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+
+        #grid-container {
+            display: grid;
+            /* Grid layout set via inline styles */
+            gap: 1px;
+            padding: 4px;
+            transition: all 0.5s ease;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            /* Dynamic via JS */
+            position: relative;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 1px;
+        }
+
+
+
+        .roll {
+            width: 70%;
+            height: 70%;
+            border-radius: 50%;
+            background: #444;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* States */
+        .roll.accessible {
+            background: var(--safe-green);
+            box-shadow: 0 0 10px var(--safe-green);
+            transform: scale(1.1);
+            z-index: 2;
+        }
+
+        .roll.removed {
+            background: transparent;
+            border: 1px solid #333;
+            transform: scale(0.5);
+            opacity: 0.3;
+        }
+
+        /* Decorative Grid Lines */
+        #grid-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                linear-gradient(rgba(0, 255, 153, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 153, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>PRINT SHOP OPTIMIZER</h1>
+        <div class="controls">
+            <button id="toggleInput">Input</button>
+            <button id="runPart1">Run Part 1</button>
+            <button id="runPart2">Run Part 2</button>
+        </div>
+    </header>
+
+    <div id="main-layout">
+        <div id="input-panel">
+            <textarea id="inputArea" placeholder="Paste puzzle input here..."></textarea>
+            <div style="text-align: right; margin-top: 5px;">
+                <button id="loadExample">Load Example</button>
+            </div>
+        </div>
+
+        <div id="stats-bar">
+            <div class="stat-item">QUEUE: <span id="queueSize">0</span></div>
+            <div class="stat-item">REMOVED: <span id="removedCount">0</span></div>
+            <div class="stat-item">STATUS: <span id="statusText">IDLE</span></div>
+        </div>
+
+        <div id="grid-wrapper">
+            <div id="grid-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const EXAMPLE_INPUT = `..@@.@@@@.
+@@@.@.@.@@
+@@@@@.@.@@
+@.@@@@..@.
+@@.@@@@.@@
+.@@@@@@@.@
+.@.@.@.@@@
+@.@@@.@@@@
+.@@@@@@@@.
+@.@.@@@.@.`;
+
+        const gridWrapper = document.getElementById('grid-wrapper');
+        const gridContainer = document.getElementById('grid-container');
+        const inputArea = document.getElementById('inputArea');
+        const queueSizeEl = document.getElementById('queueSize');
+        const removedCountEl = document.getElementById('removedCount');
+        const statusTextEl = document.getElementById('statusText');
+        const inputPanel = document.getElementById('input-panel');
+
+        let isRunning = false;
+
+        document.getElementById('toggleInput').addEventListener('click', () => {
+            inputPanel.classList.toggle('visible');
+        });
+
+        document.getElementById('loadExample').addEventListener('click', () => {
+            inputArea.value = EXAMPLE_INPUT;
+        });
+
+        document.getElementById('runPart1').addEventListener('click', () => run(false));
+        document.getElementById('runPart2').addEventListener('click', () => run(true));
+
+        function run(part2) {
+            const input = inputArea.value || EXAMPLE_INPUT;
+            if (!input.trim()) return;
+
+            inputPanel.classList.remove('visible'); // Hide input to focus on viz
+            solve(input, part2);
+        }
+
+        async function solve(input, part2) {
+            isRunning = true;
+            statusTextEl.textContent = "INITIALIZING";
+
+            const lines = input.trim().split('\n').map(l => l.trim().split(''));
+            const rows = lines.length;
+            const cols = lines[0].length;
+
+            // Responsive Layout Calculation
+            const wrapperW = gridWrapper.clientWidth - 20;
+            const wrapperH = gridWrapper.clientHeight - 20;
+            const cellW = Math.floor(wrapperW / cols);
+            const cellH = Math.floor(wrapperH / rows);
+            const cellSize = Math.max(2, Math.min(cellW, cellH, 30));
+
+            gridContainer.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+            gridContainer.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
+            gridContainer.innerHTML = '';
+
+            const degrees = new Int32Array(rows * cols).fill(0);
+            const isRoll = new Int8Array(rows * cols).fill(0);
+            const cells = [];
+
+            // Render Grid
+            for (let r = 0; r < rows; r++) {
+                cells[r] = [];
+                for (let c = 0; c < cols; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.style.width = `${cellSize}px`;
+                    cell.style.height = `${cellSize}px`;
+
+                    if (lines[r][c] === '@') {
+                        const roll = document.createElement('div');
+                        roll.className = 'roll';
+                        cell.appendChild(roll);
+                        isRoll[r * cols + c] = 1;
+                    } else {
+                        cell.classList.add('wall');
+                    }
+                    gridContainer.appendChild(cell);
+                    cells[r][c] = cell;
+                }
+            }
+
+            // Phase 1: Scan and Count Degrees (Animated)
+            const queue = [];
+            let totalRolls = 0;
+
+            statusTextEl.textContent = "SCANNING CONNECTIVITY...";
+
+            // Chunked scan for animation
+            const chunkSize = Math.max(1, Math.floor(rows / 20));
+
+            for (let r = 0; r < rows; r++) {
+                // Yield to render every few rows
+                if (r % chunkSize === 0) {
+                    await new Promise(res => requestAnimationFrame(res));
+                    if (!isRunning) return; // Stop if reset
+                }
+
+                for (let c = 0; c < cols; c++) {
+                    if (lines[r][c] === '@') {
+                        totalRolls++;
+                        let neighbors = 0;
+                        for (let dr = -1; dr <= 1; dr++) {
+                            for (let dc = -1; dc <= 1; dc++) {
+                                if (dr === 0 && dc === 0) continue;
+                                const nr = r + dr;
+                                const nc = c + dc;
+                                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                                    if (lines[nr][nc] === '@') neighbors++;
+                                }
+                            }
+                        }
+                        const idx = r * cols + c;
+                        degrees[idx] = neighbors;
+
+                        // Highlight scan (subtle)
+                        cells[r][c].style.borderColor = '#333';
+
+                        if (neighbors < 4) {
+                            queue.push(idx);
+                            const roll = cells[r][c].querySelector('.roll');
+                            if (roll) {
+                                roll.classList.add('accessible');
+                                // Add a "pop" animation delay based on row?
+                            }
+                        }
+                    }
+                }
+            }
+
+            queueSizeEl.textContent = queue.length;
+            removedCountEl.textContent = '0';
+
+            if (!part2) {
+                statusTextEl.textContent = "PART 1 COMPLETE";
+                // Flash success
+                return;
+            }
+
+            // Phase 2: Wavefront Removal
+            statusTextEl.textContent = "PROCESSING WAVEFRONT";
+            await new Promise(r => setTimeout(r, 500)); // Pause before removal
+
+            let removedCount = 0;
+
+            function step() {
+                if (!isRunning) return;
+
+                if (queue.length === 0) {
+                    statusTextEl.textContent = "COMPLETE - WAVEFRONT DONE";
+                    isRunning = false;
+                    return;
+                }
+
+                // Process batch (dynamic size based on queue length for speed)
+                const batchSize = Math.max(1, Math.ceil(queue.length * 0.15));
+
+                for (let i = 0; i < batchSize && queue.length > 0; i++) {
+                    const currentIdx = queue.shift();
+
+                    if (isRoll[currentIdx] === 0) continue;
+                    isRoll[currentIdx] = 0; // Remove
+                    removedCount++;
+
+                    const r = Math.floor(currentIdx / cols);
+                    const c = currentIdx % cols;
+
+                    // Update UI
+                    const roll = cells[r][c].querySelector('.roll');
+                    if (roll) {
+                        roll.classList.remove('accessible');
+                        roll.classList.add('removed');
+                    }
+
+                    // Update Neighbors
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            if (dr === 0 && dc === 0) continue;
+                            const nr = r + dr;
+                            const nc = c + dc;
+
+                            // Check bounds
+                            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                                const nIdx = nr * cols + nc;
+                                if (isRoll[nIdx]) {
+                                    degrees[nIdx]--;
+                                    if (degrees[nIdx] === 3) {
+                                        queue.push(nIdx);
+                                        const nRoll = cells[nr][nc].querySelector('.roll');
+                                        if (nRoll) nRoll.classList.add('accessible');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                queueSizeEl.textContent = queue.length;
+                removedCountEl.textContent = removedCount;
+
+                requestAnimationFrame(step);
+            }
+
+            // Start loop
+            step();
+        }
+
+        // Initial setup
+        inputArea.value = EXAMPLE_INPUT;
+
+        // Auto-resize on window resize (if grid exists)
+        window.addEventListener('resize', () => {
+            const input = inputArea.value;
+            if (input && isRunning) {
+                // Re-running solve is expensive, maybe just scale?
+                // For now, let user re-run if resize is drastic.
+                // Alternatively we could use CSS transforms on grid-container
+            }
+        });
+    </script>
+</body>
+
+</html>

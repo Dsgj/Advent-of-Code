@@ -10,22 +10,36 @@ const input = readInput('Day03/input.txt');
  * Strategy: For each possible first digit position, find the maximum
  * digit that comes after it. Track the overall maximum.
  */
+/**
+ * Find the maximum joltage (two-digit number) that can be produced by
+ * selecting exactly 2 batteries from a bank (indices i < j).
+ * 
+ * Optimization: Uses a single pass O(N) approach.
+ * We iterate through the second digit (j) and pair it with the 
+ * maximum digit found so far to its left (i < j).
+ */
 function maxJoltage(bank: string): number {
     const digits = bank.split('').map(Number);
     let maxValue = 0;
 
-    // For each possible first battery position
-    for (let i = 0; i < digits.length - 1; i++) {
-        const firstDigit = digits[i];
+    if (digits.length < 2) return 0;
 
-        // Find the maximum digit after position i
-        let maxSecondDigit = 0;
-        for (let j = i + 1; j < digits.length; j++) {
-            maxSecondDigit = Math.max(maxSecondDigit, digits[j]);
+    let maxFirstDigit = digits[0];
+
+    // Iterate through potential second digits (starting from index 1)
+    for (let j = 1; j < digits.length; j++) {
+        const currentDigit = digits[j];
+
+        // Calculate potential value with best previous first digit
+        const joltage = maxFirstDigit * 10 + currentDigit;
+        if (joltage > maxValue) {
+            maxValue = joltage;
         }
 
-        const joltage = firstDigit * 10 + maxSecondDigit;
-        maxValue = Math.max(maxValue, joltage);
+        // Update max first digit for future iterations
+        if (currentDigit > maxFirstDigit) {
+            maxFirstDigit = currentDigit;
+        }
     }
 
     return maxValue;

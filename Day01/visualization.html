@@ -475,9 +475,8 @@ L82`;
 
         function updateDial() {
             // Rotate the dial so current position aligns with top indicator
-            // When position is 50, dial should show 50 at top
-            const rotation = -position * 3.6;
-            dial.style.transform = `rotate(${rotation}deg)`;
+            // Use currentRotation to support smooth multi-turn animations
+            dial.style.transform = `rotate(${currentRotation}deg)`;
             positionEl.textContent = position;
 
             // Update highlighting
@@ -511,36 +510,57 @@ L82`;
             stepBtn.disabled = false;
         }
 
+        let currentRotation = -180; // Starting at 50 (-180deg) matches initial position
+
         async function executeInstruction(inst) {
             const direction = inst[0];
             const amount = parseInt(inst.substring(1));
             instructionEl.textContent = inst;
 
-            // Fast mode: 100ms total, Normal: based on speed slider
-            const totalTime = fastMode ? 100 : (510 - speedSlider.value) * (amount / 10);
-            const delay = Math.max(1, totalTime / amount);
+            // Math Optimization (matches solution.ts)
+            // Instead of simulating ticks, calculate valid zero-crossings directly
 
-            for (let i = 0; i < amount; i++) {
-                if (direction === 'R') {
-                    position = (position + 1) % 100;
-                } else if (direction === 'L') {
-                    position = position - 1;
-                    if (position < 0) position = 99;
+            let passesZero = 0;
+            // Note: In solution.ts, logic handles 0-99 range naturally.
+            // Current position 0-99.
+
+            if (direction === 'R') {
+                passesZero = Math.floor((position + amount) / 100);
+                position = (position + amount) % 100;
+                // Accumulate rotation: Increasing position means rotating dial CCW (negative)
+                currentRotation -= amount * 3.6;
+            } else if (direction === 'L') {
+                // ... (simplified logic)
+                if (position < amount) {
+                    passesZero = 1 + Math.floor((amount - position - 1) / 100);
+                } else {
+                    passesZero = 0;
                 }
 
-                if (position === 0) {
-                    part2Count++;
-                    part2El.textContent = part2Count;
-                    if (!fastMode) {
-                        dialContainer.classList.add('flash');
-                        setTimeout(() => dialContainer.classList.remove('flash'), 300);
-                    }
-                }
+                let val = (position - amount) % 100;
+                if (val < 0) val += 100;
+                position = val;
 
-                updateDial();
-                await new Promise(r => setTimeout(r, delay));
+                // Decreasing position means rotating dial CW (positive)
+                currentRotation += amount * 3.6;
             }
 
+            part2Count += passesZero;
+            part2El.textContent = part2Count;
+
+            // Animate
+            const duration = fastMode ? 100 : Math.max(100, 510 - speedSlider.value); // Single smooth move
+            dial.style.transition = `transform ${duration}ms linear`; // Linear for constant speed feel
+            updateDial();
+
+            if (passesZero > 0 && !fastMode) {
+                dialContainer.classList.add('flash');
+                setTimeout(() => dialContainer.classList.remove('flash'), 300);
+            }
+
+            await new Promise(r => setTimeout(r, duration));
+
+            // Check Part 1 (End position)
             if (position === 0) {
                 part1Count++;
                 part1El.textContent = part1Count;

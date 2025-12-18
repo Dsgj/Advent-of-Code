@@ -3,24 +3,6 @@ import { readInput } from '../utils';
 const exampleInput = readInput('Day02/exampleInput.txt');
 const input = readInput('Day02/input.txt');
 
-/**
- * Check if a number is "invalid" - meaning it's formed by repeating a digit sequence twice
- * Examples: 55 (5+5), 6464 (64+64), 123123 (123+123)
- */
-function isInvalidId(num: bigint): boolean {
-    const str = num.toString();
-    const len = str.length;
-
-    // Must have even length to be a repeated pattern
-    if (len % 2 !== 0) return false;
-
-    const half = len / 2;
-    const firstHalf = str.substring(0, half);
-    const secondHalf = str.substring(half);
-
-    // Check if both halves are equal and no leading zeros (first char can't be '0')
-    return firstHalf === secondHalf && firstHalf[0] !== '0';
-}
 
 /**
  * Parse the input to get all ranges
@@ -42,153 +24,147 @@ function parseRanges(input: string): Array<{ start: bigint, end: bigint }> {
     return ranges;
 }
 
-/**
- * Generate all "invalid" numbers of a specific digit length
- * These are numbers formed by repeating a sequence twice
- */
-function generateInvalidNumbersOfLength(totalDigits: number): bigint[] {
-    if (totalDigits % 2 !== 0) return [];
+// --------------------------------------------------------------------------------
+// Helper: Calculates sum of numbers in an arithmetic progression that fall within [minVal, maxVal]
+// Sequence: base * multiplier, (base+1) * multiplier, ...
+// We iterate 'base' (half-pattern) range.
+// --------------------------------------------------------------------------------
+function sumAPInRange(
+    minBase: bigint, maxBase: bigint,
+    multiplier: bigint,
+    rangeStart: bigint, rangeEnd: bigint
+): bigint {
+    // We want to find range of 'base' such that:
+    // rangeStart <= base * multiplier <= rangeEnd
 
-    const halfLen = totalDigits / 2;
-    const result: bigint[] = [];
+    // Lower bound for base:
+    // base >= ceil(rangeStart / multiplier)
+    const minValidBase = (rangeStart + multiplier - 1n) / multiplier;
 
-    // The first half ranges from 10^(halfLen-1) to 10^halfLen - 1
-    // For halfLen=1: 1-9
-    // For halfLen=2: 10-99
-    // etc.
-    const minHalf = halfLen === 1 ? 1n : 10n ** BigInt(halfLen - 1);
-    const maxHalf = 10n ** BigInt(halfLen) - 1n;
+    // Upper bound for base:
+    // base <= floor(rangeEnd / multiplier)
+    const maxValidBase = rangeEnd / multiplier;
 
-    for (let h = minHalf; h <= maxHalf; h++) {
-        const str = h.toString();
-        const repeated = str + str;
-        result.push(BigInt(repeated));
-    }
+    // Intersect with valid base range [minBase, maxBase]
+    const start = minValidBase > minBase ? minValidBase : minBase;
+    const end = maxValidBase < maxBase ? maxValidBase : maxBase;
 
-    return result;
+    if (start > end) return 0n;
+
+    const count = end - start + 1n;
+
+    // Sum of bases in [start, end] = n/2 * (start + end)
+    const sumOfBases = count * (start + end) / 2n;
+
+    return sumOfBases * multiplier;
 }
 
-/**
- * Find all invalid IDs in the given ranges and return their sum
- */
+// --------------------------------------------------------------------------------
+// Part 1: Sum "double" numbers (XX) in range.
+// --------------------------------------------------------------------------------
 function part1(input: string): bigint {
     const ranges = parseRanges(input);
-    let sum = 0n;
+    let totalSum = 0n;
 
     for (const range of ranges) {
-        // Determine the digit lengths we need to check
         const startLen = range.start.toString().length;
         const endLen = range.end.toString().length;
 
-        // Check all even digit lengths in this range
         for (let len = startLen; len <= endLen; len++) {
             if (len % 2 !== 0) continue;
 
-            // Generate all invalid numbers of this length
-            const invalidNumbers = generateInvalidNumbersOfLength(len);
-
-            // Check which ones fall within our range
-            for (const num of invalidNumbers) {
-                if (num >= range.start && num <= range.end) {
-                    sum += num;
-                }
+            const halfLen = len / 2;
+            const minBase = 10n ** BigInt(halfLen - 1);
+            const maxBase = 10n ** BigInt(halfLen) - 1n;
+            if (halfLen === 1) { // 10^0 = 1, range 1-9
+                // Correct.
             }
+
+            // Multiplier to form XX from X: 10^halfLen + 1
+            const multiplier = 10n ** BigInt(halfLen) + 1n;
+
+            totalSum += sumAPInRange(minBase, maxBase, multiplier, range.start, range.end);
         }
     }
-
-    return sum;
+    return totalSum;
 }
 
-/**
- * Check if a number is invalid under Part 2 rules - 
- * pattern repeated at least twice (2, 3, 4, ... times)
- */
-function isInvalidIdPart2(num: bigint): boolean {
-    const str = num.toString();
-    const len = str.length;
+// --------------------------------------------------------------------------------
+// Part 2: Sum numbers repeating a pattern 2+ times using Inclusion-Exclusion
+// --------------------------------------------------------------------------------
 
-    // Try all possible pattern lengths from 1 to len/2
-    for (let patternLen = 1; patternLen <= len / 2; patternLen++) {
-        if (len % patternLen !== 0) continue;
-
-        const pattern = str.substring(0, patternLen);
-
-        // Pattern can't have leading zero
-        if (pattern[0] === '0') continue;
-
-        // Check if entire string is this pattern repeated
-        let matches = true;
-        for (let i = patternLen; i < len; i += patternLen) {
-            if (str.substring(i, i + patternLen) !== pattern) {
-                matches = false;
-                break;
-            }
-        }
-
-        if (matches) return true;
+// Cache for divisors to avoid recomputing
+const divisorsCache = new Map<number, number[]>();
+function getProperDivisors(n: number): number[] {
+    if (divisorsCache.has(n)) return divisorsCache.get(n)!;
+    const divs = [1];
+    for (let i = 2; i <= n / 2; i++) {
+        if (n % i === 0) divs.push(i);
     }
-
-    return false;
-}
-
-/**
- * Generate all invalid numbers (Part 2) of a specific total digit length
- * These are numbers where a pattern is repeated 2+ times
- */
-function generateInvalidNumbersPart2(totalDigits: number): bigint[] {
-    const result: bigint[] = [];
-    const seen = new Set<string>();
-
-    // Try all possible pattern lengths that divide totalDigits
-    for (let patternLen = 1; patternLen <= totalDigits / 2; patternLen++) {
-        if (totalDigits % patternLen !== 0) continue;
-
-        const repetitions = totalDigits / patternLen;
-
-        // Generate all patterns of this length (no leading zeros)
-        const minPattern = patternLen === 1 ? 1n : 10n ** BigInt(patternLen - 1);
-        const maxPattern = 10n ** BigInt(patternLen) - 1n;
-
-        for (let p = minPattern; p <= maxPattern; p++) {
-            const patternStr = p.toString();
-            const repeated = patternStr.repeat(repetitions);
-
-            if (!seen.has(repeated)) {
-                seen.add(repeated);
-                result.push(BigInt(repeated));
-            }
-        }
-    }
-
-    return result;
+    divisorsCache.set(n, divs);
+    return divs;
 }
 
 function part2(input: string): bigint {
     const ranges = parseRanges(input);
-    let sum = 0n;
-    const counted = new Set<string>();
+    let totalSum = 0n;
 
     for (const range of ranges) {
         const startLen = range.start.toString().length;
         const endLen = range.end.toString().length;
 
-        // Check all digit lengths in this range
         for (let len = startLen; len <= endLen; len++) {
-            const invalidNumbers = generateInvalidNumbersPart2(len);
 
-            for (const num of invalidNumbers) {
-                if (num >= range.start && num <= range.end) {
-                    const key = num.toString();
-                    if (!counted.has(key)) {
-                        counted.add(key);
-                        sum += num;
+            // Map: patternLength -> Sum of Unique numbers generated by that PRIMITIVE pattern length
+            const uniqueSums = new Map<number, bigint>();
+
+            // Iterate all divisors of len that are <= len / 2
+            // These are valid pattern lengths
+            const validPatternLengths = [];
+            for (let d = 1; d <= len / 2; d++) {
+                if (len % d === 0) validPatternLengths.push(d);
+            }
+
+            // We must process smallest lengths first for inclusion-exclusion
+            validPatternLengths.sort((a, b) => a - b);
+
+            for (const pLen of validPatternLengths) {
+                const minBase = pLen === 1 ? 1n : 10n ** BigInt(pLen - 1);
+                const maxBase = 10n ** BigInt(pLen) - 1n;
+
+                // Multiplier: 1 + 10^p + 10^2p ... 
+                const reps = len / pLen;
+                let multiplier = 0n;
+                for (let r = 0; r < reps; r++) {
+                    multiplier += 10n ** BigInt(r * pLen);
+                }
+
+                // Raw Sum: All numbers generated by patterns of length pLen
+                // This includes those generated by sub-patterns (e.g. len 4 includes len 2 repeats)
+                let currentSum = sumAPInRange(minBase, maxBase, multiplier, range.start, range.end);
+
+                // Subtract contributions from smaller divisors (make it unique/primitive)
+                const properDivs = getProperDivisors(pLen);
+                for (const div of properDivs) {
+                    if (uniqueSums.has(div)) {
+                        currentSum -= uniqueSums.get(div)!;
+                        // Note: uniqueSums(div) stores sum of numbers generated by primitive patterns of length div.
+                        // These numbers are inherently also generated by length pLen (since div | pLen).
+                        // So we subtract them exactly once.
+                        // Wait. The numbers generated by length 'div' are P_div * M_div.
+                        // The same number viewed as length 'pLen' is P_pLen * M_pLen.
+                        // Value is identical. We just subtract the value sum.
                     }
                 }
+
+                uniqueSums.set(pLen, currentSum);
+
+                // Add to total
+                totalSum += currentSum;
             }
         }
     }
-
-    return sum;
+    return totalSum;
 }
 
 function run(name: string, input: string) {
@@ -197,7 +173,9 @@ function run(name: string, input: string) {
     console.log('Part 2:', part2(input).toString());
 }
 
-run('Example', exampleInput);
 if (input.length > 0) {
     run('Real Input', input);
 }
+// Example input might be empty in solution.ts execution context if not handled carefully,
+// but let's assume standard flow.
+if (exampleInput) run('Example', exampleInput);

@@ -1,4 +1,4 @@
-import { readInput, parseLines } from '../utils';
+import { parseLines, readInput } from '../utils';
 
 // When running via `npx ts-node Day01/solution.ts`, the cwd is mainly project root.
 const exampleInput = readInput('Day01/exampleInput.txt');
@@ -61,6 +61,14 @@ function part1(lines: string[]) {
  * Example: If dial is at 50 and we do R1000, the dial passes through 0 ten times
  * before ending back at 50.
  */
+/**
+ * Part 2: Count how many times the dial points at 0 DURING any click.
+ *
+ * Optimization:
+ * Instead of simulating each click, we use modular arithmetic to calculate
+ * how many times the dial wraps around or crosses 0 in the given range.
+ * Complexity: O(1) per instruction.
+ */
 function part2(lines: string[]) {
     let dial = 50;
     let zeroCount = 0;
@@ -70,20 +78,33 @@ function part2(lines: string[]) {
         const direction = line[0];
         const amount = parseInt(line.substring(1));
 
-        // Simulate each individual click
-        for (let i = 0; i < amount; i++) {
-            if (direction === 'R') {
-                dial = (dial + 1) % 100;
-            } else if (direction === 'L') {
-                dial = dial - 1;
-                if (dial < 0) dial = 99;
-            }
+        if (direction === 'R') {
+            // Moving Right (increasing): dial values are [start+1, start+amount]
+            // We count multiples of 100 in the range (dial, dial + amount]
+            // Number of multiples = floor((dial + amount)/100) - floor(dial/100)
+            // Since dial is in [0, 99], floor(dial/100) is always 0.
+            const crossings = Math.floor((dial + amount) / 100);
+            zeroCount += crossings;
+            dial = (dial + amount) % 100;
+        } else if (direction === 'L') {
+            // Moving Left (decreasing): dial values are [start-1, start-amount]
+            // We count multiples of 100 in the range [dial - amount, dial - 1]
+            // Formula: floor(max/100) - floor((min-1)/100)
+            // Range is [dial - amount, dial - 1]
+            // Count = floor((dial - 1)/100) - floor((dial - amount - 1)/100)
+            const upper = dial - 1;
+            const lower = dial - amount;
+            const crossings = Math.floor(upper / 100) - Math.floor((lower - 1) / 100);
+            zeroCount += crossings;
 
-            // Count every time we land on 0 during the rotation
-            if (dial === 0) {
-                zeroCount++;
-            }
+            // Correct JS negative modulo behavior
+            dial = ((dial - amount) % 100 + 100) % 100;
         }
+
+        // Check if we ended on 0 is NOT needed separately because the count covers the interval.
+        // Wait, the problem says "points at 0". 0 is a multiple of 100 (0 * 100).
+        // Our interval checks cover 0, 100, 200 etc.
+        // Since we map specific dial value '0' to multiples of 100 in linear space, this is correct.
     }
     console.log('Part 2 Result:', zeroCount);
 }

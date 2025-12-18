@@ -4,9 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advent of Code - Day 02 - Gift Shop</title>
+    <title>Day 2 - Gift Shop ID Scanner</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        :root {
+            --crt-bg: #001a00;
+            --crt-dark: #000d00;
+            --crt-green: #00ff41;
+            --crt-dim: #005500;
+            --crt-dimmer: #003300;
+            --crt-glow: rgba(0, 255, 65, 0.4);
+            --crt-red: #ff4444;
+            --crt-yellow: #ffcc00;
+        }
 
         * {
             margin: 0;
@@ -14,838 +23,893 @@
             box-sizing: border-box;
         }
 
-        :root {
-            --terminal-green: #00ff41;
-            --terminal-dark-green: #003b00;
-            --terminal-bg: #0a0f0a;
-            --glow-color: #00ff41;
-        }
-
         body {
-            background: var(--terminal-bg);
-            font-family: 'VT323', monospace;
-            color: var(--terminal-green);
-            min-height: 100vh;
-            overflow: hidden;
-        }
-
-        /* CRT Screen Effect */
-        .crt-container {
-            position: relative;
-            width: 100vw;
+            background: var(--crt-dark);
+            color: var(--crt-green);
+            font-family: 'Courier New', monospace;
             height: 100vh;
             overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        .crt-container::before {
+        .crt-screen {
+            width: 100%;
+            max-width: 1200px;
+            height: 100%;
+            max-height: 100vh;
+            background: var(--crt-bg);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+
+        .crt-screen::before {
             content: "";
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(transparent 50%,
-                    rgba(0, 0, 0, 0.1) 50%);
-            background-size: 100% 4px;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 2px);
             pointer-events: none;
             z-index: 100;
         }
 
-        .crt-container::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(ellipse at center,
-                    transparent 0%,
-                    rgba(0, 0, 0, 0.4) 100%);
-            pointer-events: none;
-            z-index: 101;
-        }
-
-        .terminal {
-            padding: 15px;
-            height: 100vh;
-            max-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            overflow: hidden;
-        }
-
-        /* ASCII Art Header */
-        .ascii-header {
+        .header {
             text-align: center;
-            font-size: 12px;
-            line-height: 1.1;
-            text-shadow: 0 0 10px var(--glow-color), 0 0 20px var(--glow-color);
-            white-space: pre;
-            animation: flicker 0.15s infinite alternate;
-            flex-shrink: 0;
+            padding: 8px 0;
+            border-bottom: 2px solid var(--crt-dim);
         }
 
-        @keyframes flicker {
-            0% {
-                opacity: 0.97;
-            }
-
-            100% {
-                opacity: 1;
-            }
-        }
-
-        /* Main Display Area */
-        .display-area {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr auto;
-            gap: 15px;
-            flex: 1;
-            min-height: 0;
-            overflow: hidden;
-        }
-
-        .panel {
-            background: rgba(0, 60, 0, 0.15);
-            border: 2px solid var(--terminal-green);
-            border-radius: 5px;
-            padding: 10px;
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2),
-                inset 0 0 30px rgba(0, 255, 65, 0.05);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
-        }
-
-        .panel-title {
-            font-size: 18px;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            margin-bottom: 10px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid var(--terminal-dark-green);
-            text-shadow: 0 0 8px var(--glow-color);
-        }
-
-        .subtitle {
-            text-align: center;
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-            opacity: 0.8;
-            text-transform: uppercase;
+        .header h1 {
+            font-size: 16px;
+            text-shadow: 0 0 10px var(--crt-glow);
             letter-spacing: 2px;
-            text-shadow: 0 0 10px var(--glow-color);
         }
 
-        /* Scanner Panel */
-        .scanner-content {
-            flex: 1;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .scan-lines {
-            font-size: 16px;
-            line-height: 1.6;
-            overflow-y: auto;
-            height: 100%;
-            padding-right: 10px;
-        }
-
-        .scan-line {
-            opacity: 0.6;
-            transition: all 0.2s;
-        }
-
-        .scan-line.active {
-            opacity: 1;
-            text-shadow: 0 0 10px var(--glow-color);
-        }
-
-        .scan-line.valid {
-            color: #555;
-        }
-
-        .scan-line.invalid {
-            color: #ff4141;
-            text-shadow: 0 0 10px #ff4141;
-        }
-
-        .range-header {
-            color: #00ccff;
-            text-shadow: 0 0 10px #00ccff;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-
-        /* Pattern Analysis Panel */
-        .pattern-display {
-            font-size: 48px;
-            text-align: center;
-            margin: 20px 0;
-            text-shadow: 0 0 20px var(--glow-color), 0 0 40px var(--glow-color);
-            letter-spacing: 5px;
-        }
-
-        .pattern-breakdown {
-            font-size: 24px;
-            text-align: center;
-            margin: 10px 0;
-        }
-
-        .pattern-part {
-            display: inline-block;
-            padding: 5px 10px;
-            margin: 0 5px;
-            border: 1px dashed var(--terminal-green);
-            animation: pulse 1s infinite alternate;
-        }
-
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 5px var(--glow-color);
-            }
-
-            100% {
-                box-shadow: 0 0 15px var(--glow-color), 0 0 25px var(--glow-color);
-            }
-        }
-
-        .pattern-info {
-            text-align: center;
-            font-size: 16px;
-            color: #888;
-            margin-top: 10px;
-        }
-
-        /* Stats Panel */
-        .stats-panel {
-            grid-column: 1 / -1;
-            flex-shrink: 0;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            text-align: center;
-        }
-
-        .stat-box {
-            background: rgba(0, 60, 0, 0.2);
-            padding: 10px;
-            border: 1px solid var(--terminal-dark-green);
-        }
-
-        .stat-label {
-            font-size: 11px;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .stat-value {
-            font-size: 22px;
-            text-shadow: 0 0 10px var(--glow-color);
-            margin-top: 3px;
-            word-break: break-all;
-        }
-
-        .stat-value.total {
-            color: #ffcc00;
-            text-shadow: 0 0 10px #ffcc00, 0 0 20px #ffcc00;
-        }
-
-        /* Controls */
         .controls {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             justify-content: center;
-            padding: 10px 0;
-            flex-shrink: 0;
+            padding: 8px;
+            border-bottom: 1px solid var(--crt-dimmer);
         }
 
         .btn {
-            font-family: 'VT323', monospace;
-            font-size: 18px;
-            padding: 10px 30px;
-            background: transparent;
-            border: 2px solid var(--terminal-green);
-            color: var(--terminal-green);
+            background: var(--crt-dark);
+            border: 1px solid var(--crt-dim);
+            color: var(--crt-green);
+            padding: 5px 14px;
             cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: all 0.2s;
+            font-family: inherit;
+            font-size: 11px;
         }
 
-        .btn:hover {
-            background: var(--terminal-green);
-            color: var(--terminal-bg);
-            box-shadow: 0 0 20px var(--glow-color);
-        }
-
-        .btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
+        .btn:hover,
         .btn.active {
-            background: var(--terminal-green);
-            color: var(--terminal-bg);
+            background: var(--crt-green);
+            color: var(--crt-dark);
         }
 
-        /* Speed Control */
-        .speed-control {
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 10px;
+            min-height: 0;
+            overflow: hidden;
+            padding: 8px 0;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .panel-title {
+            padding: 6px 10px;
+            border-bottom: 1px solid var(--crt-dim);
+            font-size: 11px;
+            background: var(--crt-dimmer);
+            color: var(--crt-green);
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            min-height: 0;
+        }
+
+        .viz-panel {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .stats-panel {
+            flex-shrink: 0;
+            width: 280px;
+        }
+
+        /* ASCII Frame Elements - Dynamic width */
+        .ascii-frame {
             display: flex;
             align-items: center;
-            gap: 10px;
+            font-size: 11px;
+            line-height: 1;
+            color: var(--crt-dim);
+            overflow: hidden;
+            white-space: nowrap;
+            max-width: 100%;
+            min-width: 0;
         }
 
-        .speed-control input {
-            width: 100px;
-            accent-color: var(--terminal-green);
-        }
-
-        /* Cursor blink */
-        .cursor {
-            display: inline-block;
-            width: 10px;
-            height: 20px;
-            background: var(--terminal-green);
-            animation: blink 1s step-end infinite;
-            vertical-align: middle;
-            margin-left: 5px;
-        }
-
-        @keyframes blink {
-            50% {
-                opacity: 0;
-            }
-        }
-
-        /* Part toggle */
-        .part-toggle {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 5px;
+        .ascii-frame-top::before {
+            content: '╔';
             flex-shrink: 0;
         }
 
-        .part-btn {
-            padding: 5px 20px;
-            font-size: 14px;
+        .ascii-frame-top::after {
+            content: '╗';
+            flex-shrink: 0;
         }
 
-        .part-btn.active {
-            background: var(--terminal-green);
-            color: var(--terminal-bg);
+        .ascii-frame-bottom::before {
+            content: '╚';
+            flex-shrink: 0;
         }
 
-        /* Scrollbar */
+        .ascii-frame-bottom::after {
+            content: '╝';
+            flex-shrink: 0;
+        }
+
+        .ascii-frame .fill {
+            flex: 1;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .ascii-frame .fill::before {
+            content: '════════════════════════════════════════════════════════════════════════════════════════════════════';
+        }
+
+        .ascii-frame .title {
+            padding: 0 4px;
+            color: var(--crt-green);
+            flex-shrink: 0;
+        }
+
+        .ascii-box {
+            display: flex;
+            align-items: center;
+            font-size: 10px;
+            line-height: 1;
+            color: var(--crt-dim);
+            overflow: hidden;
+            white-space: nowrap;
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        .ascii-box-top::before {
+            content: '┌';
+            flex-shrink: 0;
+        }
+
+        .ascii-box-top::after {
+            content: '┐';
+            flex-shrink: 0;
+        }
+
+        .ascii-box-bottom::before {
+            content: '└';
+            flex-shrink: 0;
+        }
+
+        .ascii-box-bottom::after {
+            content: '┘';
+            flex-shrink: 0;
+        }
+
+        .ascii-box .fill {
+            flex: 1;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .ascii-box .fill::before {
+            content: '──────────────────────────────────────────────────────────────────────────────────────────────────';
+        }
+
+        .ascii-box .title {
+            padding: 0 4px;
+            flex-shrink: 0;
+        }
+
+        /* Total Display */
+        .total-box {
+            text-align: center;
+            padding: 8px;
+            background: var(--crt-dark);
+            margin: 0;
+        }
+
+        .total-label {
+            font-size: 10px;
+            color: var(--crt-dim);
+        }
+
+        .total-value {
+            font-size: 20px;
+            color: var(--crt-green);
+            text-shadow: 0 0 15px var(--crt-glow);
+            font-weight: bold;
+            word-break: break-all;
+            padding: 8px 0;
+        }
+
+        .total-addition {
+            font-size: 12px;
+            color: var(--crt-yellow);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .total-addition.show {
+            opacity: 1;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px dashed var(--crt-dimmer);
+            font-size: 11px;
+        }
+
+        .stat-row .label {
+            color: var(--crt-dim);
+        }
+
+        .stat-row .value {
+            color: var(--crt-green);
+        }
+
+        /* Waterfall Visualization */
+        .waterfall-section {
+            margin-bottom: 20px;
+        }
+
+        .range-header {
+            background: var(--crt-dim);
+            color: var(--crt-bg);
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .length-group {
+            margin-bottom: 15px;
+            border-left: 2px solid var(--crt-dim);
+            padding-left: 10px;
+        }
+
+        .length-title {
+            color: var(--crt-dim);
+            font-size: 10px;
+            margin-bottom: 8px;
+        }
+
+        /* Number Example Box */
+        .number-box {
+            display: inline-block;
+            background: var(--crt-dark);
+            border: 1px solid var(--crt-dim);
+            padding: 4px 8px;
+            margin: 2px;
+            font-size: 12px;
+            color: var(--crt-green);
+        }
+
+        .number-box.highlight {
+            border-color: var(--crt-green);
+            box-shadow: 0 0 5px var(--crt-glow);
+        }
+
+        .number-box .pattern-part {
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        /* Waterfall Bar */
+        .waterfall-item {
+            background: var(--crt-dark);
+            border: 1px solid var(--crt-dimmer);
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .waterfall-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .waterfall-examples {
+            margin-bottom: 10px;
+        }
+
+        .waterfall-bar-row {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+            font-size: 10px;
+        }
+
+        .bar-label {
+            width: 70px;
+            color: var(--crt-dim);
+            text-align: right;
+            padding-right: 8px;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 16px;
+            background: var(--crt-dark);
+            border: 1px solid var(--crt-dimmer);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            color: var(--crt-dark);
+            font-weight: bold;
+            transition: width 0.3s;
+        }
+
+        .bar-fill.raw {
+            background: var(--crt-dim);
+        }
+
+        .bar-fill.sub {
+            background: var(--crt-red);
+        }
+
+        .bar-fill.unique {
+            background: var(--crt-green);
+        }
+
+        .bar-value {
+            width: 100px;
+            padding-left: 8px;
+            color: var(--crt-green);
+        }
+
+        .flow-indicator {
+            text-align: center;
+            padding: 5px;
+            color: var(--crt-yellow);
+            font-size: 10px;
+        }
+
+        .complete-banner {
+            background: var(--crt-green);
+            color: var(--crt-dark);
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         ::-webkit-scrollbar-track {
-            background: var(--terminal-bg);
+            background: var(--crt-dark);
         }
 
         ::-webkit-scrollbar-thumb {
-            background: var(--terminal-dark-green);
-            border-radius: 4px;
+            background: var(--crt-dim);
         }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--terminal-green);
+        .speed-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            font-size: 10px;
+            color: var(--crt-dim);
+        }
+
+        .speed-row input {
+            flex: 1;
         }
     </style>
 </head>
 
 <body>
-    <div class="crt-container">
-        <div class="terminal">
-            <pre class="ascii-header">
- ██████╗ ██╗███████╗████████╗    ███████╗██╗  ██╗ ██████╗ ██████╗ 
-██╔════╝ ██║██╔════╝╚══██╔══╝    ██╔════╝██║  ██║██╔═══██╗██╔══██╗
-██║  ███╗██║█████╗     ██║       ███████╗███████║██║   ██║██████╔╝
-██║   ██║██║██╔══╝     ██║       ╚════██║██╔══██║██║   ██║██╔═══╝ 
-╚██████╔╝██║██║        ██║       ███████║██║  ██║╚██████╔╝██║     
- ╚═════╝ ╚═╝╚═╝        ╚═╝       ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     
-            ══════ DATABASE SCANNER v2.0 ══════
-            </pre>
-            <div class="subtitle">Day 2 - Inventory Anomaly Detection System</div>
-
-            <div class="part-toggle">
-                <button class="btn part-btn active" data-part="1">Part 1</button>
-                <button class="btn part-btn" data-part="2">Part 2</button>
-            </div>
-
-            <div class="display-area">
-                <div class="panel">
-                    <div class="panel-title">▸ ID Scanner</div>
-                    <div class="scanner-content">
-                        <div class="scan-lines" id="scanLines">
-                            <div class="scan-line">Awaiting scan initialization...</div>
-                            <div class="scan-line"><span class="cursor"></span></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="panel">
-                    <div class="panel-title">▸ Pattern Analysis</div>
-                    <div id="patternDisplay" class="pattern-display">---</div>
-                    <div id="patternBreakdown" class="pattern-breakdown"></div>
-                    <div id="patternInfo" class="pattern-info">Waiting for invalid ID...</div>
-                </div>
-
-                <div class="panel stats-panel">
-                    <div class="panel-title">▸ Statistics</div>
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <div class="stat-label">Current Range</div>
-                            <div class="stat-value" id="currentRange">-</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-label">IDs Scanned</div>
-                            <div class="stat-value" id="idsScanned">0</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-label">Invalid Found</div>
-                            <div class="stat-value" id="invalidFound">0</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-label">Total Sum</div>
-                            <div class="stat-value total" id="totalSum">0</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="controls">
-                <button class="btn" id="btnRun">▶ Run</button>
-                <button class="btn" id="btnStep">⏭ Step</button>
-                <button class="btn" id="btnReset">↺ Reset</button>
-                <div class="speed-control">
-                    <span>Speed:</span>
-                    <input type="range" id="speedSlider" min="1" max="100" value="50">
-                </div>
-            </div>
+    <div class="crt-screen">
+        <div class="header">
+            <pre
+                style="color: var(--crt-green); font-size: 9px; line-height: 1.1; text-shadow: 0 0 10px var(--crt-glow); text-align: center;">
+╔════════════════════════════════════════════════════════════════════╗
+║                                                                    ║
+║  ██████╗ ██╗███████╗████████╗    ███████╗██╗  ██╗ ██████╗ ██████╗  ║
+║ ██╔════╝ ██║██╔════╝╚══██╔══╝    ██╔════╝██║  ██║██╔═══██╗██╔══██╗ ║
+║ ██║  ███╗██║█████╗     ██║       ███████╗███████║██║   ██║██████╔╝ ║
+║ ██║   ██║██║██╔══╝     ██║       ╚════██║██╔══██║██║   ██║██╔═══╝  ║
+║ ╚██████╔╝██║██║        ██║       ███████║██║  ██║╚██████╔╝██║      ║
+║  ╚═════╝ ╚═╝╚═╝        ╚═╝       ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝      ║
+╚══════════════════════ DATABASE SCANNER v2.0 ═══════════════════════╝
+</pre>
         </div>
 
-        <script>
-            // Example input
-            const EXAMPLE_INPUT = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
+        <div class="controls">
+            <button class="btn active" data-part="1">Part 1</button>
+            <button class="btn" data-part="2">Part 2</button>
+            <span style="width: 20px;"></span>
+            <button class="btn" id="btnRun">▶ RUN</button>
+            <button class="btn" id="btnStep">STEP</button>
+            <button class="btn" id="btnReset">RESET</button>
+        </div>
 
-            let currentPart = 1;
-            let ranges = [];
-            let invalidIds = [];
-            let currentRangeIndex = 0;
-            let currentInvalidIndex = 0;
-            let isRunning = false;
-            let animationTimeout = null;
-            let stats = { scanned: 0, invalid: 0, sum: 0n };
+        <div class="main-content">
+            <div class="panel viz-panel">
+                <div class="ascii-frame ascii-frame-top"><span class="fill"></span><span class="title">PATTERN
+                        ANALYSIS</span><span class="fill"></span></div>
+                <div class="panel-content" id="visualizer">
+                    <div style="text-align: center; padding: 40px; color: var(--crt-dim);">
+                        Press [RUN] to start analysis
+                    </div>
+                </div>
+                <div class="ascii-frame ascii-frame-bottom"><span class="fill"></span><span class="fill"></span></div>
+            </div>
 
-            // DOM elements
-            const scanLines = document.getElementById('scanLines');
-            const patternDisplay = document.getElementById('patternDisplay');
-            const patternBreakdown = document.getElementById('patternBreakdown');
-            const patternInfo = document.getElementById('patternInfo');
-            const currentRangeEl = document.getElementById('currentRange');
-            const idsScannedEl = document.getElementById('idsScanned');
-            const invalidFoundEl = document.getElementById('invalidFound');
-            const totalSumEl = document.getElementById('totalSum');
-            const btnRun = document.getElementById('btnRun');
-            const btnStep = document.getElementById('btnStep');
-            const btnReset = document.getElementById('btnReset');
-            const speedSlider = document.getElementById('speedSlider');
+            <div class="panel stats-panel">
+                <div class="ascii-frame ascii-frame-top"><span class="fill"></span><span
+                        class="title">STATISTICS</span><span class="fill"></span></div>
+                <div class="panel-content">
+                    <div class="ascii-box ascii-box-top"><span class="fill"></span><span class="title">TOTAL</span><span
+                            class="fill"></span></div>
+                    <div class="total-box">
+                        <div class="total-value" id="totalSum">0</div>
+                        <div class="total-addition" id="totalAddition">+0</div>
+                    </div>
+                    <div class="ascii-box ascii-box-bottom"><span class="fill"></span></div>
 
-            // Part 1: Check if number is pattern repeated exactly twice
-            function isInvalidPart1(numStr) {
-                const len = numStr.length;
-                if (len % 2 !== 0) return false;
-                const half = len / 2;
-                const first = numStr.substring(0, half);
-                const second = numStr.substring(half);
-                return first === second && first[0] !== '0';
+                    <div class="stat-row">
+                        <span class="label">├ Range:</span>
+                        <span class="value" id="currentRange">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">├ Invalid:</span>
+                        <span class="value" id="invalidCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">└ Pattern:</span>
+                        <span class="value" id="currentPattern">-</span>
+                    </div>
+
+                    <div class="speed-row">
+                        <span>Speed:</span>
+                        <input type="range" id="speedSlider" min="1" max="100" value="70">
+                    </div>
+                </div>
+                <div class="ascii-frame ascii-frame-bottom"><span class="fill"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const EXAMPLE_INPUT = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
+
+        let currentPart = 1;
+        let ranges = [];
+        let isRunning = false;
+        let animationTimeout = null;
+        let queueIndex = 0;
+        let animationQueue = [];
+        let runningTotal = 0n;
+
+        const visualizer = document.getElementById('visualizer');
+        const currentRangeEl = document.getElementById('currentRange');
+        const invalidCountEl = document.getElementById('invalidCount');
+        const totalSumEl = document.getElementById('totalSum');
+        const totalAdditionEl = document.getElementById('totalAddition');
+        const currentPatternEl = document.getElementById('currentPattern');
+        const btnRun = document.getElementById('btnRun');
+        const btnStep = document.getElementById('btnStep');
+        const btnReset = document.getElementById('btnReset');
+        const speedSlider = document.getElementById('speedSlider');
+
+        function sumAPInRange(minBase, maxBase, multiplier, rangeStart, rangeEnd) {
+            const minValidBase = (rangeStart + multiplier - 1n) / multiplier;
+            const maxValidBase = rangeEnd / multiplier;
+            const start = minValidBase > minBase ? minValidBase : minBase;
+            const end = maxValidBase < maxBase ? maxValidBase : maxBase;
+            if (start > end) return { sum: 0n, count: 0n };
+            const count = end - start + 1n;
+            const sumOfBases = count * (start + end) / 2n;
+            return { sum: sumOfBases * multiplier, count: count };
+        }
+
+        const divisorsCache = new Map();
+        function getProperDivisors(n) {
+            if (divisorsCache.has(n)) return divisorsCache.get(n);
+            const divs = [1];
+            for (let i = 2; i <= n / 2; i++) {
+                if (n % i === 0) divs.push(i);
             }
+            divisorsCache.set(n, divs);
+            return divs;
+        }
 
-            // Part 2: Check if number is pattern repeated 2+ times
-            function isInvalidPart2(numStr) {
-                const len = numStr.length;
-                for (let patternLen = 1; patternLen <= len / 2; patternLen++) {
-                    if (len % patternLen !== 0) continue;
-                    const pattern = numStr.substring(0, patternLen);
-                    if (pattern[0] === '0') continue;
-                    let matches = true;
-                    for (let i = patternLen; i < len; i += patternLen) {
-                        if (numStr.substring(i, i + patternLen) !== pattern) {
-                            matches = false;
-                            break;
-                        }
-                    }
-                    if (matches) return { valid: true, pattern, count: len / patternLen };
+        function parseRanges(input) {
+            return input.split(',').filter(p => p.trim()).map(p => {
+                const [start, end] = p.trim().split('-');
+                return { start: BigInt(start), end: BigInt(end) };
+            });
+        }
+
+        function generateExamples(pLen, len, rangeStart, rangeEnd, maxExamples = 3) {
+            const examples = [];
+            const reps = len / pLen;
+            const minBase = pLen === 1 ? 1n : 10n ** BigInt(pLen - 1);
+            const maxBase = 10n ** BigInt(pLen) - 1n;
+            let multiplier = 0n;
+            for (let r = 0; r < reps; r++) multiplier += 10n ** BigInt(r * pLen);
+            for (let base = minBase; base <= maxBase && examples.length < maxExamples; base++) {
+                const num = base * multiplier;
+                if (num >= rangeStart && num <= rangeEnd) {
+                    examples.push({ num: num.toString(), pLen, reps });
                 }
-                return { valid: false };
             }
+            return examples;
+        }
 
-            // Get pattern info for display
-            function getPatternInfo(numStr) {
-                const len = numStr.length;
-                for (let patternLen = 1; patternLen <= len / 2; patternLen++) {
-                    if (len % patternLen !== 0) continue;
-                    const pattern = numStr.substring(0, patternLen);
-                    if (pattern[0] === '0') continue;
-                    let matches = true;
-                    for (let i = patternLen; i < len; i += patternLen) {
-                        if (numStr.substring(i, i + patternLen) !== pattern) {
-                            matches = false;
-                            break;
+        function formatNumberWithPattern(numStr, pLen) {
+            // Highlight the repeating pattern
+            const parts = [];
+            for (let i = 0; i < numStr.length; i += pLen) {
+                parts.push(numStr.slice(i, i + pLen));
+            }
+            const pattern = parts[0];
+            return parts.map((p, idx) =>
+                idx === 0
+                    ? `<span class="pattern-part">${p}</span>`
+                    : p
+            ).join('');
+        }
+
+        function buildAnimationQueue(ranges, part) {
+            const queue = [];
+            let totalSumGlob = 0n;
+            let totalInvalidGlob = 0n;
+
+            ranges.forEach((range, rIdx) => {
+                const startLen = range.start.toString().length;
+                const endLen = range.end.toString().length;
+
+                queue.push({ type: 'range-start', range, rIdx, totalRanges: ranges.length });
+
+                for (let len = startLen; len <= endLen; len++) {
+                    if (part === 1 && len % 2 !== 0) continue;
+                    if (part === 2 && len < 2) continue;
+
+                    const validPatternLengths = [];
+                    if (part === 1) {
+                        validPatternLengths.push(len / 2);
+                    } else {
+                        for (let d = 1; d <= len / 2; d++) {
+                            if (len % d === 0) validPatternLengths.push(d);
                         }
+                        validPatternLengths.sort((a, b) => a - b);
                     }
-                    if (matches) {
-                        return { pattern, count: len / patternLen };
-                    }
-                }
-                return null;
-            }
 
-            // Parse ranges
-            function parseRanges(input) {
-                return input.split(',')
-                    .filter(p => p.trim())
-                    .map(p => {
-                        const [start, end] = p.trim().split('-');
-                        return { start: BigInt(start), end: BigInt(end) };
-                    });
-            }
+                    if (validPatternLengths.length === 0) continue;
+                    queue.push({ type: 'len-start', len, validPatternLengths });
 
-            // Generate invalid numbers of specific length
-            function generateInvalidNumbers(totalDigits, part) {
-                const result = [];
-                const seen = new Set();
+                    const uniqueSums = new Map();
+                    const uniqueCounts = new Map();
 
-                if (part === 1) {
-                    if (totalDigits % 2 !== 0) return [];
-                    const halfLen = totalDigits / 2;
-                    const minHalf = halfLen === 1 ? 1n : 10n ** BigInt(halfLen - 1);
-                    const maxHalf = 10n ** BigInt(halfLen) - 1n;
-                    for (let h = minHalf; h <= maxHalf; h++) {
-                        const str = h.toString();
-                        const repeated = str + str;
-                        result.push(BigInt(repeated));
-                    }
-                } else {
-                    for (let patternLen = 1; patternLen <= totalDigits / 2; patternLen++) {
-                        if (totalDigits % patternLen !== 0) continue;
-                        const repetitions = totalDigits / patternLen;
-                        const minPattern = patternLen === 1 ? 1n : 10n ** BigInt(patternLen - 1);
-                        const maxPattern = 10n ** BigInt(patternLen) - 1n;
-                        for (let p = minPattern; p <= maxPattern; p++) {
-                            const patternStr = p.toString();
-                            const repeated = patternStr.repeat(repetitions);
-                            if (!seen.has(repeated)) {
-                                seen.add(repeated);
-                                result.push(BigInt(repeated));
-                            }
-                        }
-                    }
-                }
-                return result.sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
-            }
+                    for (const pLen of validPatternLengths) {
+                        const minBase = pLen === 1 ? 1n : 10n ** BigInt(pLen - 1);
+                        const maxBase = 10n ** BigInt(pLen) - 1n;
+                        const reps = len / pLen;
+                        let multiplier = 0n;
+                        for (let r = 0; r < reps; r++) multiplier += 10n ** BigInt(r * pLen);
 
-            // Find all invalid IDs in ranges
-            function findAllInvalidIds(ranges, part) {
-                const result = [];
-                const seen = new Set();
+                        const res = sumAPInRange(minBase, maxBase, multiplier, range.start, range.end);
+                        let currentSum = res.sum;
+                        let currentCount = res.count;
+                        const rawSum = currentSum;
+                        const rawCount = currentCount;
 
-                for (const range of ranges) {
-                    const startLen = range.start.toString().length;
-                    const endLen = range.end.toString().length;
-                    const rangeInvalids = [];
-
-                    for (let len = startLen; len <= endLen; len++) {
-                        const invalids = generateInvalidNumbers(len, part);
-                        for (const num of invalids) {
-                            if (num >= range.start && num <= range.end) {
-                                const key = num.toString();
-                                if (!seen.has(key)) {
-                                    seen.add(key);
-                                    rangeInvalids.push(num);
+                        const subtractions = [];
+                        if (part === 2) {
+                            const properDivs = getProperDivisors(pLen);
+                            for (const div of properDivs) {
+                                if (uniqueSums.has(div)) {
+                                    const subSum = uniqueSums.get(div);
+                                    const subCount = uniqueCounts.get(div);
+                                    currentSum -= subSum;
+                                    currentCount -= subCount;
+                                    subtractions.push({ div, subSum, subCount });
                                 }
                             }
                         }
-                    }
-                    result.push({ range, invalids: rangeInvalids });
-                }
-                return result;
-            }
 
-            // Format large numbers
-            function formatNumber(n) {
-                return n.toLocaleString();
-            }
+                        uniqueSums.set(pLen, currentSum);
+                        uniqueCounts.set(pLen, currentCount);
 
-            // Add scan line
-            function addScanLine(text, className = '') {
-                const line = document.createElement('div');
-                line.className = 'scan-line ' + className;
-                line.textContent = text;
-                scanLines.appendChild(line);
-                scanLines.scrollTop = scanLines.scrollHeight;
-            }
+                        const examples = generateExamples(pLen, len, range.start, range.end, 4);
 
-            // Update pattern display
-            function showPattern(numStr) {
-                const info = getPatternInfo(numStr);
-                patternDisplay.textContent = numStr;
-
-                if (info) {
-                    let breakdown = '';
-                    for (let i = 0; i < info.count; i++) {
-                        breakdown += `<span class="pattern-part">${info.pattern}</span>`;
-                    }
-                    patternBreakdown.innerHTML = breakdown;
-                    patternInfo.textContent = `Pattern "${info.pattern}" × ${info.count}`;
-                }
-            }
-
-            // Get speed from slider
-            function getDelay() {
-                return 1000 - (speedSlider.value * 9);
-            }
-
-            // Build a step-by-step animation queue that shows the algorithm
-            let animationQueue = [];
-            let queueIndex = 0;
-
-            function buildAnimationQueue(ranges, part) {
-                const queue = [];
-                const seen = new Set();
-                let totalSum = 0n;
-                let totalInvalid = 0;
-
-                for (let rangeIdx = 0; rangeIdx < ranges.length; rangeIdx++) {
-                    const range = ranges[rangeIdx];
-                    const startLen = range.start.toString().length;
-                    const endLen = range.end.toString().length;
-
-                    // Step: Show which range we're processing
-                    queue.push({
-                        type: 'range-start',
-                        rangeIdx,
-                        totalRanges: ranges.length,
-                        range,
-                        startLen,
-                        endLen
-                    });
-
-                    let foundInRange = false;
-
-                    // For each digit length
-                    for (let len = startLen; len <= endLen; len++) {
-                        // Check if this length can have invalid patterns
-                        const hasPatterns = part === 1 ? (len % 2 === 0) : (len >= 2);
-
-                        if (!hasPatterns) continue;
-
-                        // Step: Show which length we're generating
-                        queue.push({
-                            type: 'length-check',
-                            len,
-                            part
-                        });
-
-                        // Generate invalid numbers of this length
-                        const invalids = generateInvalidNumbers(len, part);
-
-                        // Step: Show how many patterns of this length exist
-                        queue.push({
-                            type: 'patterns-generated',
-                            len,
-                            count: invalids.length
-                        });
-
-                        // Check each invalid number against the range
-                        for (const num of invalids) {
-                            if (num >= range.start && num <= range.end) {
-                                const key = num.toString();
-                                if (!seen.has(key)) {
-                                    seen.add(key);
-                                    totalInvalid++;
-                                    totalSum += num;
-                                    foundInRange = true;
-
-                                    // Step: Found an invalid ID in range!
-                                    queue.push({
-                                        type: 'found-invalid',
-                                        num,
-                                        totalInvalid,
-                                        totalSum
-                                    });
-                                }
-                            }
+                        if (currentCount > 0n) {
+                            totalSumGlob += currentSum;
+                            totalInvalidGlob += currentCount;
                         }
-                    }
 
-                    if (!foundInRange) {
                         queue.push({
-                            type: 'no-invalid-in-range'
+                            type: 'pattern',
+                            pLen, len, reps,
+                            rawSum, rawCount,
+                            subtractions,
+                            uniqueSum: currentSum,
+                            uniqueCount: currentCount,
+                            examples,
+                            newTotal: totalSumGlob,
+                            newInvalid: totalInvalidGlob
                         });
                     }
                 }
+            });
 
-                // Final step
-                queue.push({
-                    type: 'complete',
-                    totalInvalid,
-                    totalSum
+            queue.push({ type: 'complete', totalSum: totalSumGlob, totalInvalid: totalInvalidGlob });
+            return queue;
+        }
+
+        function renderWaterfallItem(item) {
+            const container = document.createElement('div');
+            container.className = 'waterfall-item';
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'waterfall-header';
+            header.innerHTML = `<span>Pattern L${item.pLen} (${item.pLen}-digit × ${item.reps})</span>`;
+            container.appendChild(header);
+
+            // Number examples with pattern highlighting
+            if (item.examples.length > 0) {
+                const examplesDiv = document.createElement('div');
+                examplesDiv.className = 'waterfall-examples';
+
+                item.examples.forEach((ex, idx) => {
+                    const box = document.createElement('span');
+                    box.className = 'number-box' + (idx === 0 ? ' highlight' : '');
+                    box.innerHTML = formatNumberWithPattern(ex.num, ex.pLen);
+                    examplesDiv.appendChild(box);
                 });
 
-                return queue;
+                if (item.rawCount > BigInt(item.examples.length)) {
+                    const more = document.createElement('span');
+                    more.style.cssText = 'color: var(--crt-dim); font-size: 10px; margin-left: 5px;';
+                    more.textContent = `+${(item.rawCount - BigInt(item.examples.length)).toString()} more`;
+                    examplesDiv.appendChild(more);
+                }
+
+                container.appendChild(examplesDiv);
             }
 
-            // Process one step from the queue
-            function step() {
-                if (queueIndex >= animationQueue.length) {
+            // Waterfall bars
+            const maxVal = item.rawCount > 0n ? item.rawCount : 1n;
+            const scale = (n) => Math.min(100, Math.max(5, Number(n * 100n / maxVal)));
+
+            // Raw bar
+            const rawRow = document.createElement('div');
+            rawRow.className = 'waterfall-bar-row';
+            rawRow.innerHTML = `
+                <span class="bar-label">Raw:</span>
+                <div class="bar-track">
+                    <div class="bar-fill raw" style="width: ${scale(item.rawCount)}%">${item.rawCount.toString()}</div>
+                </div>
+                <span class="bar-value">${item.rawSum.toString()}</span>
+            `;
+            container.appendChild(rawRow);
+
+            // Subtraction bars
+            for (const sub of item.subtractions) {
+                if (sub.subCount > 0n) {
+                    const subRow = document.createElement('div');
+                    subRow.className = 'waterfall-bar-row';
+                    subRow.innerHTML = `
+                        <span class="bar-label">- L${sub.div}:</span>
+                        <div class="bar-track">
+                            <div class="bar-fill sub" style="width: ${scale(sub.subCount)}%">${sub.subCount.toString()}</div>
+                        </div>
+                        <span class="bar-value" style="color: var(--crt-red)">-${sub.subSum.toString()}</span>
+                    `;
+                    container.appendChild(subRow);
+                }
+            }
+
+            // Unique result bar
+            const uniqueRow = document.createElement('div');
+            uniqueRow.className = 'waterfall-bar-row';
+            uniqueRow.innerHTML = `
+                <span class="bar-label">= Unique:</span>
+                <div class="bar-track">
+                    <div class="bar-fill unique" style="width: ${scale(item.uniqueCount)}%">${item.uniqueCount.toString()}</div>
+                </div>
+                <span class="bar-value" style="font-weight: bold;">${item.uniqueSum.toString()}</span>
+            `;
+            container.appendChild(uniqueRow);
+
+            // Flow indicator
+            if (item.uniqueSum > 0n) {
+                const flow = document.createElement('div');
+                flow.className = 'flow-indicator';
+                flow.innerHTML = `▼ +${item.uniqueSum.toString()} added to total`;
+                container.appendChild(flow);
+            } else if (item.rawCount === 0n) {
+                const noMatch = document.createElement('div');
+                noMatch.className = 'flow-indicator';
+                noMatch.style.color = 'var(--crt-dim)';
+                noMatch.textContent = '(no matches in range)';
+                container.appendChild(noMatch);
+            }
+
+            return container;
+        }
+
+        function updateTotal(newTotal, addition) {
+            runningTotal = newTotal;
+            totalSumEl.textContent = newTotal.toString();
+
+            if (addition > 0n) {
+                totalAdditionEl.textContent = '+' + addition.toString();
+                totalAdditionEl.classList.add('show');
+                setTimeout(() => totalAdditionEl.classList.remove('show'), 600);
+            }
+        }
+
+        function step() {
+            if (queueIndex >= animationQueue.length) {
+                isRunning = false;
+                btnRun.textContent = '▶ RUN';
+                return false;
+            }
+
+            const item = animationQueue[queueIndex];
+            queueIndex++;
+
+            switch (item.type) {
+                case 'range-start':
+                    currentRangeEl.textContent = `${item.rIdx + 1}/${item.totalRanges}`;
+                    if (item.rIdx === 0) visualizer.innerHTML = '';
+
+                    const rangeDiv = document.createElement('div');
+                    rangeDiv.className = 'range-header';
+                    rangeDiv.textContent = `RANGE: ${item.range.start} → ${item.range.end}`;
+                    visualizer.appendChild(rangeDiv);
+                    break;
+
+                case 'len-start':
+                    const lengthGroup = document.createElement('div');
+                    lengthGroup.className = 'length-group';
+                    lengthGroup.id = `len-${item.len}`;
+
+                    const lenTitle = document.createElement('div');
+                    lenTitle.className = 'length-title';
+                    lenTitle.textContent = `${item.len}-digit numbers (patterns: L${item.validPatternLengths.join(', L')})`;
+                    lengthGroup.appendChild(lenTitle);
+
+                    visualizer.appendChild(lengthGroup);
+                    break;
+
+                case 'pattern':
+                    currentPatternEl.textContent = `L${item.pLen}`;
+                    const waterfallItem = renderWaterfallItem(item);
+
+                    const lastLenGroup = visualizer.querySelector(`#len-${item.len}`);
+                    if (lastLenGroup) {
+                        lastLenGroup.appendChild(waterfallItem);
+                    } else {
+                        visualizer.appendChild(waterfallItem);
+                    }
+
+                    visualizer.scrollTop = visualizer.scrollHeight;
+
+                    const addition = item.uniqueSum > 0n ? item.uniqueSum : 0n;
+                    updateTotal(item.newTotal, addition);
+                    invalidCountEl.textContent = item.newInvalid.toString();
+                    break;
+
+                case 'complete':
+                    currentPatternEl.textContent = 'DONE';
+                    const banner = document.createElement('div');
+                    banner.className = 'complete-banner';
+                    banner.textContent = `✓ COMPLETE - FINAL SUM: ${item.totalSum.toString()}`;
+                    visualizer.appendChild(banner);
+                    visualizer.scrollTop = visualizer.scrollHeight;
                     isRunning = false;
-                    btnRun.textContent = '▶ Run';
-                    return false;
-                }
-
-                const item = animationQueue[queueIndex];
-                queueIndex++;
-
-                switch (item.type) {
-                    case 'range-start':
-                        addScanLine('');
-                        addScanLine(`▸ RANGE ${item.rangeIdx + 1}/${item.totalRanges}: ${item.range.start.toString()} → ${item.range.end.toString()}`, 'range-header');
-                        addScanLine(`  Checking digit lengths: ${item.startLen} to ${item.endLen}`, 'valid');
-                        currentRangeEl.textContent = `${item.rangeIdx + 1}/${item.totalRanges}`;
-                        patternDisplay.textContent = '...';
-                        patternBreakdown.innerHTML = '';
-                        patternInfo.textContent = 'Analyzing range...';
-                        break;
-
-                    case 'length-check':
-                        const desc = item.part === 1
-                            ? `(pattern × 2)`
-                            : `(pattern × 2+)`;
-                        addScanLine(`  → Length ${item.len} ${desc}`, 'valid');
-                        break;
-
-                    case 'patterns-generated':
-                        addScanLine(`    Generated ${item.count} candidate patterns`, 'valid');
-                        stats.scanned += item.count;
-                        idsScannedEl.textContent = formatNumber(stats.scanned);
-                        break;
-
-                    case 'found-invalid':
-                        const numStr = item.num.toString();
-                        addScanLine(`    ✓ FOUND: ${numStr}`, 'invalid');
-                        showPattern(numStr);
-                        stats.invalid = item.totalInvalid;
-                        stats.sum = item.totalSum;
-                        invalidFoundEl.textContent = formatNumber(stats.invalid);
-                        totalSumEl.textContent = stats.sum.toString();
-                        break;
-
-                    case 'no-invalid-in-range':
-                        addScanLine(`  ✗ No invalid IDs in this range`, 'valid');
-                        break;
-
-                    case 'complete':
-                        addScanLine('');
-                        addScanLine('════════════════════════════════════════');
-                        addScanLine(`SCAN COMPLETE`, 'active');
-                        addScanLine(`Total Invalid IDs: ${item.totalInvalid}`, 'active');
-                        addScanLine(`Sum: ${item.totalSum.toString()}`, 'active');
-                        isRunning = false;
-                        btnRun.textContent = '▶ Run';
-                        break;
-                }
-
-                return true;
+                    btnRun.textContent = '▶ RUN';
+                    break;
             }
+            return true;
+        }
 
-            // Run animation
-            function run() {
+        function logicalLoop() {
+            if (isRunning) {
                 if (step()) {
-                    animationTimeout = setTimeout(run, getDelay());
+                    let delay = 1000 - (speedSlider.value * 9.5);
+                    if (delay < 50) delay = 50;
+                    animationTimeout = setTimeout(logicalLoop, delay);
                 }
             }
+        }
 
-            // Initialize
-            function init() {
-                ranges = parseRanges(EXAMPLE_INPUT);
-                animationQueue = buildAnimationQueue(ranges, currentPart);
-                queueIndex = 0;
-                stats = { scanned: 0, invalid: 0, sum: 0n };
+        function init() {
+            ranges = parseRanges(EXAMPLE_INPUT);
+            animationQueue = buildAnimationQueue(ranges, currentPart);
+            queueIndex = 0;
+            runningTotal = 0n;
+            totalSumEl.textContent = '0';
+            totalAdditionEl.textContent = '';
+            totalAdditionEl.classList.remove('show');
+            invalidCountEl.textContent = '0';
+            currentRangeEl.textContent = '-';
+            currentPatternEl.textContent = '-';
+            visualizer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--crt-dim);">Press [RUN] to start analysis</div>';
+            clearTimeout(animationTimeout);
+        }
 
-                scanLines.innerHTML = '';
-                addScanLine('NORTH POLE GIFT SHOP - DATABASE AUDIT SYSTEM');
-                addScanLine('════════════════════════════════════════════');
-                addScanLine(`Loading ${ranges.length} product ID ranges...`);
-                addScanLine(`Mode: Part ${currentPart} (pattern × ${currentPart === 1 ? '2' : '2+'})`);
-                addScanLine('');
-                addScanLine('Algorithm: Generate invalid patterns by length,');
-                addScanLine('           then check if they fall within range.');
-                addScanLine('');
-                addScanLine('Ready. Press RUN or STEP to begin.');
-
-                patternDisplay.textContent = '---';
-                patternBreakdown.innerHTML = '';
-                patternInfo.textContent = 'Waiting for analysis...';
-                currentRangeEl.textContent = '-';
-                idsScannedEl.textContent = '0';
-                invalidFoundEl.textContent = '0';
-                totalSumEl.textContent = '0';
-            }
-
-            // Event listeners
-            btnRun.addEventListener('click', () => {
-                if (isRunning) {
-                    isRunning = false;
-                    clearTimeout(animationTimeout);
-                    btnRun.textContent = '▶ Run';
-                } else {
-                    isRunning = true;
-                    btnRun.textContent = '⏸ Pause';
-                    run();
-                }
-            });
-
-            btnStep.addEventListener('click', () => {
-                if (!isRunning) {
-                    step();
-                }
-            });
-
-            btnReset.addEventListener('click', () => {
+        btnRun.addEventListener('click', () => {
+            if (isRunning) {
                 isRunning = false;
                 clearTimeout(animationTimeout);
-                btnRun.textContent = '▶ Run';
+                btnRun.textContent = '▶ RUN';
+            } else {
+                isRunning = true;
+                btnRun.textContent = '⏸ PAUSE';
+                logicalLoop();
+            }
+        });
+
+        btnStep.addEventListener('click', () => { if (!isRunning) step(); });
+        btnReset.addEventListener('click', () => {
+            isRunning = false;
+            clearTimeout(animationTimeout);
+            init();
+        });
+
+        document.querySelectorAll('[data-part]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-part]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentPart = parseInt(btn.dataset.part);
+                isRunning = false;
+                clearTimeout(animationTimeout);
                 init();
             });
+        });
 
-            document.querySelectorAll('.part-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.part-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentPart = parseInt(btn.dataset.part);
-                    isRunning = false;
-                    clearTimeout(animationTimeout);
-                    btnRun.textContent = '▶ Run';
-                    init();
-                });
-            });
-
-            // Initialize on load
-            init();
-        </script>
+        init();
+    </script>
 </body>
 
 </html>

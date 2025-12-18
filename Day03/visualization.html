@@ -551,6 +551,7 @@
         const speedSlider = document.getElementById('speedSlider');
         const part1Btn = document.getElementById('part1Btn');
         const part2Btn = document.getElementById('part2Btn');
+        const algorithmSteps = document.querySelectorAll('.algorithm-step');
 
 
         function parseInput(input) {
@@ -607,72 +608,154 @@
             const queue = [];
             const digits = bank.split('');
             const n = digits.length;
-            const selected = [];
-            let startPos = 0;
 
             queue.push({ type: 'bank-start', bank });
 
-            for (let i = 0; i < count; i++) {
-                const digitsRemaining = count - i;
-                const endPos = n - digitsRemaining;
+            if (currentPart === 1) {
+                // Part 1: Select exactly 2 batteries (i < j) to maximize value.
+                // O(N) Algorithm: Iterate j, tracking max digit at i < j.
 
-                // Show the search range
-                const candidates = [];
-                for (let p = startPos; p <= endPos; p++) {
-                    candidates.push(p);
+                if (n < 2) {
+                    queue.push({ type: 'bank-complete', joltage: 0n, selected: [] });
+                    return queue;
+                }
+
+                let maxFirstDigit = parseInt(digits[0]);
+                let maxFirstPos = 0;
+                let maxValue = 0;
+                let bestPair = [0, -1]; // indices
+
+                // Step 1: Initialize
+                queue.push({
+                    type: 'scan-step',
+                    step: 1,
+                    desc: `Init: First digit ${digits[0]} at pos 0 is current max tracking digit.`,
+                    bestSoFar: 0,
+                    scanning: 0
+                });
+
+                for (let j = 1; j < n; j++) {
+                    const currentDigit = parseInt(digits[j]);
+
+                    // Visualize scanning j
+                    queue.push({
+                        type: 'scan-step',
+                        step: 2,
+                        desc: `Scanning pos ${j} (Value ${currentDigit}). Best previous is ${maxFirstDigit} at pos ${maxFirstPos}.`,
+                        scanning: j,
+                        bestSoFar: maxFirstPos,
+                        candidate: j
+                    });
+
+                    // Check combination
+                    const joltage = maxFirstDigit * 10 + currentDigit;
+
+                    if (joltage > maxValue) {
+                        maxValue = joltage;
+                        bestPair = [maxFirstPos, j];
+                        queue.push({
+                            type: 'scan-step',
+                            step: 3,
+                            desc: `New Best! ${maxFirstDigit}${currentDigit} (${joltage}) > Previous Best`,
+                            scanning: j,
+                            bestSoFar: maxFirstPos,
+                            selected: [maxFirstPos, j]
+                        });
+                    }
+
+                    // Update max tracking
+                    if (currentDigit > maxFirstDigit) {
+                        maxFirstDigit = currentDigit;
+                        maxFirstPos = j;
+                        queue.push({
+                            type: 'scan-step',
+                            step: 4,
+                            desc: `Found new max tracking digit ${currentDigit} at pos ${j}.`,
+                            scanning: j,
+                            bestSoFar: j // It becomes the new best-so-far
+                        });
+                    }
                 }
 
                 queue.push({
-                    type: 'search-range',
-                    step: 1,
-                    startPos,
-                    endPos,
-                    selected: [...selected],
-                    candidates
+                    type: 'bank-complete',
+                    step: 4,
+                    selected: bestPair,
+                    joltage: BigInt(maxValue)
                 });
 
-                // Find maximum in range
-                let maxDigit = '0';
-                let maxPos = startPos;
+            } else {
+                // Part 2: Select 12 batteries greedily.
+                // Algorithm: Iterate count times, picking best available in valid range.
 
-                for (let pos = startPos; pos <= endPos; pos++) {
-                    // Check if this is a new best
-                    if (digits[pos] > maxDigit) {
-                        maxDigit = digits[pos];
-                        maxPos = pos;
+                const selected = [];
+                let startPos = 0;
+
+                for (let i = 0; i < count; i++) {
+                    const digitsRemaining = count - i;
+                    const endPos = n - digitsRemaining;
+
+                    // Show the search range
+                    const candidates = [];
+                    for (let p = startPos; p <= endPos; p++) {
+                        candidates.push(p);
                     }
 
                     queue.push({
-                        type: 'scan-digit',
-                        step: 2,
-                        pos,
-                        bestSoFar: maxPos,
+                        type: 'search-range',
+                        step: 1,
+                        startPos,
+                        endPos,
                         selected: [...selected],
-                        candidates
+                        candidates,
+                        desc: `Selecting digit ${i + 1}/${count}. Range: ${startPos}-${endPos}`
                     });
+
+                    // Find maximum in range
+                    let maxDigit = '0';
+                    let maxPos = startPos;
+
+                    for (let pos = startPos; pos <= endPos; pos++) {
+                        // Check if this is a new best
+                        if (digits[pos] > maxDigit) {
+                            maxDigit = digits[pos];
+                            maxPos = pos;
+                        }
+
+                        queue.push({
+                            type: 'scan-digit',
+                            step: 2,
+                            pos,
+                            bestSoFar: maxPos,
+                            selected: [...selected],
+                            candidates,
+                            desc: `Scanning... Best in range: ${maxDigit} at ${maxPos}`
+                        });
+                    }
+
+                    // Select the best digit
+                    selected.push(maxPos);
+                    queue.push({
+                        type: 'select-digit',
+                        step: 3,
+                        pos: maxPos,
+                        digit: maxDigit,
+                        selected: [...selected],
+                        desc: `Selected ${maxDigit} at pos ${maxPos}`
+                    });
+
+                    startPos = maxPos + 1;
                 }
 
-                // Select the best digit
-                selected.push(maxPos);
+                // Compute final joltage
+                const joltageStr = selected.map(i => digits[i]).join('');
                 queue.push({
-                    type: 'select-digit',
-                    step: 3,
-                    pos: maxPos,
-                    digit: maxDigit,
-                    selected: [...selected]
+                    type: 'bank-complete',
+                    step: 4,
+                    selected: [...selected],
+                    joltage: BigInt(joltageStr)
                 });
-
-                startPos = maxPos + 1;
             }
-
-            // Compute final joltage
-            const joltageStr = selected.map(i => digits[i]).join('');
-            queue.push({
-                type: 'bank-complete',
-                step: 4,
-                selected: [...selected],
-                joltage: BigInt(joltageStr)
-            });
 
             return queue;
         }
@@ -707,9 +790,15 @@
             const bankIdx = item.bankIndex;
             const totalBanks = item.totalBanks;
 
+            // Common Updates
+            if (item.type !== 'complete') {
+                bankNumber.textContent = `Bank ${bankIdx + 1} of ${totalBanks}`;
+                // Only update progress bar per bank start to avoid jitter, or smoothly? 
+                // Let's keep existing logic but careful with undefineds
+            }
+
             switch (item.type) {
                 case 'bank-start':
-                    bankNumber.textContent = `Bank ${bankIdx + 1} of ${totalBanks}`;
                     currentBankEl.textContent = bankIdx + 1;
                     banksProcessedEl.textContent = `${bankIdx} / ${totalBanks}`;
                     progressFill.style.width = `${(bankIdx / totalBanks) * 100}%`;
@@ -717,6 +806,21 @@
                     bankJoltageEl.textContent = '--';
                     currentJoltageEl.textContent = '--';
                     highlightAlgorithmStep(-1);
+                    if (document.getElementById('algorithmPanel')) {
+                        document.getElementById('step1').textContent = currentPart === 1 ? "1. Track max digit so far" : "1. Define valid greedy range";
+                        document.getElementById('step2').textContent = currentPart === 1 ? "2. Scan next digit & pair" : "2. Find max in range";
+                        document.getElementById('step3').textContent = currentPart === 1 ? "3. Update best pair" : "3. Select digit";
+                        document.getElementById('step4').textContent = currentPart === 1 ? "4. Update max tracker" : "4. Repeat N times";
+                    }
+                    break;
+
+                case 'scan-step': // Part 1 specific
+                    // Render current state
+                    // scanning: curr pos, bestSoFar: curr max pos
+                    // selected: current best pair
+                    const sel = item.selected || (item.bestSoFar !== undefined ? [item.bestSoFar] : []);
+                    renderBatteries(banks[bankIdx], sel, [], item.scanning, item.bestSoFar);
+                    highlightAlgorithmStep(item.step - 1);
                     break;
 
                 case 'search-range':
