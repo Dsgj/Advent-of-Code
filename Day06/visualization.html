@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advent of Code - Day 06 - Trash Compactor</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Ensure font metrics are loaded/stable */
+        #gridContainer {
+            font-variant-ligatures: none;
+            tab-size: 4;
+        }
+
+        /* Measure element */
+        #charMeasure {
+            position: absolute;
+            visibility: hidden;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 14px;
+            white-space: pre;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Hidden measure element -->
+
+
+    <div class="main-screen">
+        <header>
+            <h1>TRASH COMPACTOR</h1>
+            <div class="subtitle">Cephalopod Math Decoder v6.0</div>
+        </header>
+
+        <div class="content-wrapper">
+            <!-- Left Panel: Visualization -->
+            <div class="viz-panel">
+                <div class="panel-header">
+                    <span>Active Scan</span>
+                    <span id="coordDisplay">---</span>
+                </div>
+                <div class="viz-area">
+                    <div id="gridContainer">
+                        <div id="highlightOverlay" class="overlay-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Sidebar -->
+            <div class="sidebar-panel">
+
+                <!-- System Controls -->
+                <div class="control-box">
+                    <div class="section-title">SYSTEM MODE</div>
+                    <div class="btn-grid">
+                        <button id="part1Btn" class="active-mode">PART 1 (HORIZ)</button>
+                        <button id="part2Btn">PART 2 (VERT)</button>
+                        <button id="inputBtn" class="btn-full">LOAD INPUT DATA</button>
+                    </div>
+                </div>
+
+                <div class="control-box">
+                    <div class="section-title">EXECUTION</div>
+                    <div class="btn-grid">
+                        <button id="runBtn">▶ RUN</button>
+                        <button id="stepBtn">⏯ STEP</button>
+                        <button id="resetBtn" class="btn-full">↺ SYSTEM RESET</button>
+                    </div>
+                    <div class="speed-control">
+                        <label>PROCESS SPEED</label>
+                        <input type="range" id="speedSlider" min="1" max="100" value="95">
+                    </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="stats-box">
+                    <div class="section-title">TELEMETRY</div>
+
+                    <div class="stat-item">
+                        <span class="stat-label">BLOCKS QUEUED</span>
+                        <span class="stat-value" id="blocksQueued">0</span>
+                    </div>
+
+                    <div class="stat-item">
+                        <span class="stat-label">BLOCK RESULT</span>
+                        <span class="stat-value" id="blockResult">0</span>
+                    </div>
+
+                    <div class="stat-item">
+                        <span class="stat-label">GRAND TOTAL</span>
+                        <span class="stat-value highlight" id="grandTotal">0</span>
+                    </div>
+
+                    <div class="section-title" style="margin-top:10px;">CURRENT CALCULATION</div>
+                    <div class="calc-display" id="currentCalc">...</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Modal -->
+    <div class="modal-overlay" id="inputModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>INPUT DATA STREAM</h2>
+            </div>
+            <div class="modal-body">
+                <textarea id="modalInputArea" placeholder="Paste your puzzle input here..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button id="useExampleBtn">LOAD EXAMPLE</button>
+                <button id="useCustomBtn" class="active-mode">LOAD CUSTOM</button>
+                <button id="closeModalBtn">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const EXAMPLE_INPUT = `123 328  51 64 
+ 45 64  387 23 
+  6 98  215 314
+*   +   *   +  `;
+
+        // --- STATE ---
+        let rawInput = EXAMPLE_INPUT;
+        let paddedLines = [];
+        let blocks = [];
+        let currentMode = 1; // 1 or 2
+        let animationQueue = [];
+        let isRunning = false;
+        let timer = null;
+        let totalSum = 0;
+        let charWidth = 14;
+        let charHeight = 18;
+        let extraDelay = 0;
+
+        // --- DOM ---
+        const gridContainer = document.getElementById('gridContainer');
+        const highlightOverlay = document.getElementById('highlightOverlay');
+        const currentCalcEl = document.getElementById('currentCalc');
+        const blockResultEl = document.getElementById('blockResult');
+        const grandTotalEl = document.getElementById('grandTotal');
+        const blocksQueuedEl = document.getElementById('blocksQueued');
+        const part1Btn = document.getElementById('part1Btn');
+        const part2Btn = document.getElementById('part2Btn');
+        const runBtn = document.getElementById('runBtn');
+        const speedSlider = document.getElementById('speedSlider');
+
+        // Modal
+        const inputModal = document.getElementById('inputModal');
+        const inputBtn = document.getElementById('inputBtn');
+        const modalInputArea = document.getElementById('modalInputArea');
+        const useExampleBtn = document.getElementById('useExampleBtn');
+        const useCustomBtn = document.getElementById('useCustomBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const charMeasure = document.getElementById('charMeasure');
+
+        // --- INIT ---
+        function init() {
+            // Font matches CSS definition (14px width, 18px height)
+            charWidth = 14;
+            charHeight = 18;
+
+            const stored = localStorage.getItem('day06_input');
+            if (stored) {
+                rawInput = stored;
+            }
+            parseAndReset();
+        }
+
+        function parseAndReset() {
+            stopAnimation();
+            animationQueue = [];
+            totalSum = 0;
+            currentCalcEl.textContent = '...';
+            blockResultEl.textContent = '0';
+            grandTotalEl.textContent = '0';
+            blocksQueuedEl.textContent = '0';
+            highlightOverlay.style.display = 'none';
+
+            // Clean input: Replace tabs with 4 spaces to prevent merging
+            // Replaces multiple empty lines with single? No, preserve structure.
+            const lines = rawInput.replace(/\t/g, '    ').trimEnd().split(/\r?\n/);
+            const width = Math.max(...lines.map(line => line.length));
+            paddedLines = lines.map(line => line.padEnd(width, ' '));
+
+            identifyBlockRanges();
+            renderGrid();
+
+            if (currentMode === 1) queuePart1();
+            else queuePart2();
+
+            blocksQueuedEl.textContent = blocks.length;
+        }
+
+        function identifyBlockRanges() {
+            if (paddedLines.length === 0) { blocks = []; return; }
+            const height = paddedLines.length;
+            const width = paddedLines[0].length;
+
+            // Analyze columns
+            const isContentCol = new Uint8Array(width);
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    if (paddedLines[y][x] !== ' ') {
+                        isContentCol[x] = 1;
+                        break;
+                    }
+                }
+            }
+
+            blocks = [];
+            let start = -1;
+            for (let x = 0; x < width; x++) {
+                if (isContentCol[x] === 1) {
+                    if (start === -1) start = x;
+                } else {
+                    if (start !== -1) {
+                        blocks.push({ start, end: x - 1 });
+                        start = -1;
+                    }
+                }
+            }
+            if (start !== -1) blocks.push({ start, end: width - 1 });
+        }
+
+        function renderGrid() {
+            gridContainer.innerHTML = '';
+
+            const fragment = document.createDocumentFragment();
+
+            // Improve input parsing
+            // Use regex for newlines to handle all platforms text
+            const lines = rawInput.replace(/\t/g, '    ').trimEnd().split(/\r\n|\r|\n/);
+            const width = Math.max(...lines.map(line => line.length));
+            paddedLines = lines.map(line => line.padEnd(width, ' '));
+
+            // Optimization: Detect if large dataset
+            const isLarge = (paddedLines.length * paddedLines[0].length) > 10000;
+
+            paddedLines.forEach((line, y) => {
+                const row = document.createElement('div');
+                // Use a string builder approach for row content
+                // Create spans ONLY for non-space, use text nodes for spaces
+                // This keeps geometry (monospace) but reduces DOM nodes
+
+                let rowHTML = '';
+                for (let x = 0; x < line.length; x++) {
+                    const char = line[x];
+                    // Always use span to enforce 14px width from CSS .cell
+                    const cls = char !== ' ' ? 'cell content' : 'cell';
+                    rowHTML += `<span class="${cls}" id="c-${y}-${x}">${char}</span>`;
+                }
+                row.innerHTML = rowHTML;
+                fragment.appendChild(row);
+                // line break not needed if div is block
+            });
+            gridContainer.appendChild(fragment);
+            // Append Overlay LAST so it is physically last in DOM (on top of static flow)
+            gridContainer.appendChild(highlightOverlay);
+        }
+
+        // --- LOGIC ---
+        function queuePart1() {
+            const height = paddedLines.length;
+            blocks.forEach((block) => {
+                animationQueue.push({ type: 'highlight_block', block });
+                const foundNumbers = [];
+                let operator = '';
+
+                for (let y = 0; y < height; y++) {
+                    const rowSlice = paddedLines[y].slice(block.start, block.end + 1);
+                    // Parse numbers/ops from slice
+                    let currentToken = '';
+                    let startX = -1;
+
+                    for (let i = 0; i < rowSlice.length; i++) {
+                        const c = rowSlice[i];
+                        if (c !== ' ') {
+                            if (startX === -1) startX = i;
+                            currentToken += c;
+                        } else {
+                            if (startX !== -1) {
+                                emitToken(currentToken, y, block.start + startX);
+                                currentToken = '';
+                                startX = -1;
+                            }
+                        }
+                    }
+                    if (startX !== -1) emitToken(currentToken, y, block.start + startX);
+                }
+
+                function emitToken(text, y, x) {
+                    const coords = [];
+                    for (let i = 0; i < text.length; i++) coords.push({ y, x: x + i });
+                    if (text === '+' || text === '*') {
+                        operator = text;
+                        animationQueue.push({ type: 'found_operator', text, coords });
+                    } else {
+                        foundNumbers.push(parseInt(text));
+                        animationQueue.push({ type: 'found_number', val: parseInt(text), coords });
+                    }
+                }
+
+                if (foundNumbers.length > 0 && operator) {
+                    const res = operator === '+' ? foundNumbers.reduce((a, b) => a + b, 0) : foundNumbers.reduce((a, b) => a * b, 1);
+                    const expr = foundNumbers.join(` ${operator} `);
+                    animationQueue.push({ type: 'calc_block', val: res, expr });
+                }
+                animationQueue.push({ type: 'clear_block', block });
+            });
+            animationQueue.push({ type: 'finish' });
+        }
+
+        function queuePart2() {
+            const height = paddedLines.length;
+            blocks.forEach((block) => {
+                animationQueue.push({ type: 'highlight_block', block });
+                let operator = '';
+                let opCoords = [];
+                // Scan for operator
+                for (let y = 0; y < height; y++) {
+                    for (let x = block.start; x <= block.end; x++) {
+                        const c = paddedLines[y][x];
+                        if (c === '+' || c === '*') {
+                            operator = c;
+                            opCoords.push({ y, x });
+                        }
+                    }
+                }
+                if (operator) animationQueue.push({ type: 'found_operator', text: operator, coords: opCoords });
+
+                const foundNumbers = [];
+                // R-to-L vertical scan
+                for (let x = block.end; x >= block.start; x--) {
+                    let digitStr = '';
+                    let coords = [];
+                    for (let y = 0; y < height; y++) {
+                        const c = paddedLines[y][x];
+                        if (c !== ' ' && c !== '+' && c !== '*') {
+                            digitStr += c;
+                            coords.push({ y, x });
+                        }
+                    }
+                    if (digitStr.length > 0) {
+                        foundNumbers.push(parseInt(digitStr));
+                        animationQueue.push({ type: 'found_number', val: parseInt(digitStr), coords });
+                    }
+                }
+
+                if (foundNumbers.length > 0 && operator) {
+                    const res = operator === '+' ? foundNumbers.reduce((a, b) => a + b, 0) : foundNumbers.reduce((a, b) => a * b, 1);
+                    const expr = foundNumbers.join(` ${operator} `);
+                    animationQueue.push({ type: 'calc_block', val: res, expr });
+                }
+                animationQueue.push({ type: 'clear_block', block });
+            });
+            animationQueue.push({ type: 'finish' });
+        }
+
+        // --- ANIMATION ---
+        function runStep() {
+            if (animationQueue.length === 0) {
+                stopAnimation();
+                return;
+            }
+
+            const speed = parseInt(speedSlider.value);
+            // Dynamic Batch Size based on Queue Length and Speed
+            let stepsToProcess = 1;
+
+            if (speed > 80) stepsToProcess = 5;
+            if (speed > 90) stepsToProcess = 20;
+            if (speed === 100 || animationQueue.length > 5000) stepsToProcess = 100; // Auto-Turbo for large loads
+
+            for (let i = 0; i < stepsToProcess; i++) {
+                if (animationQueue.length === 0) break;
+
+                const nextStep = animationQueue[0];
+                // Yield before valuable visual states:
+                // 1. New Highlighting (highlight_block)
+                // 2. Result Display (calc_block) - wait, this is processed next. 
+                // We want to PAUSE AFTER calc_block implies breaking BEFORE clear_block.
+                if (i > 0 && (
+                    nextStep.type === 'highlight_block' ||
+                    nextStep.type === 'calc_block' ||
+                    nextStep.type === 'clear_block'
+                )) {
+                    break;
+                }
+
+                const step = animationQueue.shift();
+                processStep(step);
+
+                // FORCE DELAY AFTER CALC:
+                if (step.type === 'calc_block') {
+                    extraDelay = 100; // Force 100ms pause to see result
+                    break; // Stop batch
+                }
+            }
+
+            if (isRunning && animationQueue.length > 0) {
+                let delay = Math.max(0, 100 - speed);
+                if (extraDelay > 0) {
+                    delay = Math.max(delay, extraDelay);
+                    extraDelay = 0;
+                }
+                timer = setTimeout(runStep, delay);
+            } else if (animationQueue.length === 0) {
+                stopAnimation();
+            }
+        }
+
+        function processStep(step) {
+            if (step.type === 'highlight_block') {
+                const { start, end } = step.block;
+
+                // Robust Positioning using measured charWidth
+                const pxLeft = start * charWidth;
+                const pxWidth = (end - start + 1) * charWidth;
+                const height = gridContainer.scrollHeight;
+
+                highlightOverlay.style.left = pxLeft + 'px';
+                highlightOverlay.style.width = pxWidth + 'px';
+                highlightOverlay.style.height = height + 'px';
+                highlightOverlay.style.display = 'block';
+
+                // Scroll view
+                const container = gridContainer.parentElement;
+                const centerPx = pxLeft + (pxWidth / 2);
+                const targetScroll = centerPx - (container.clientWidth / 2);
+                container.scrollLeft = targetScroll;
+            }
+            else if (step.type === 'found_number' || step.type === 'found_operator') {
+                const cls = step.type === 'found_number' ? 'number-hl' : 'operator-hl';
+                step.coords.forEach(c => {
+                    const cell = document.getElementById(`c-${c.y}-${c.x}`);
+                    if (cell) {
+                        cell.classList.add(cls);
+                    }
+                });
+            }
+            else if (step.type === 'calc_block') {
+                currentCalcEl.textContent = `${step.expr} = ${step.val}`;
+                blockResultEl.textContent = step.val;
+                totalSum += step.val;
+                grandTotalEl.textContent = totalSum;
+            }
+            else if (step.type === 'clear_block') {
+                // Nothing to clear visually individually, wait for next block highlight
+                // But we should dim previous numbers?
+                // Since we add classes to cells, we should remove them or let them stay?
+                // Previous logic cleared them.
+                // We need to clear OLD highlights.
+                // Optimization: Clear everything? No, too slow.
+                // Clear active block range
+                const { start, end } = step.block;
+                const height = paddedLines.length;
+                // Since we use ID maps now, we can query safely
+                // Actually better: Track active highlighted elements in a Set and clear them
+                // But for now, iterate block range is OK
+                for (let y = 0; y < height; y++) {
+                    for (let x = start; x <= end; x++) {
+                        const cell = document.getElementById(`c-${y}-${x}`);
+                        if (cell) {
+                            cell.classList.remove('number-hl', 'operator-hl');
+                            cell.classList.add('reading');
+                        }
+                    }
+                }
+            }
+            else if (step.type === 'finish') {
+                runBtn.textContent = 'FINISHED';
+                isRunning = false;
+                highlightOverlay.style.display = 'none';
+            }
+        }
+
+        // --- CONTROLS ---
+        function startAnimation() {
+            if (animationQueue.length === 0) return;
+            isRunning = true;
+            runBtn.textContent = '⏸ PAUSE';
+            runStep();
+        }
+
+        function stopAnimation() {
+            isRunning = false;
+            runBtn.textContent = '▶ RUN';
+            if (timer) clearTimeout(timer);
+        }
+
+        runBtn.onclick = () => {
+            if (isRunning) stopAnimation();
+            else startAnimation();
+        };
+
+        document.getElementById('stepBtn').onclick = () => {
+            stopAnimation();
+            // Single step batch
+            if (animationQueue.length === 0) return;
+            // Process until logic change (e.g. whole block)
+            // or just a few frames
+            for (let i = 0; i < 5; i++) {
+                if (animationQueue.length === 0) break;
+                const step = animationQueue.shift();
+                processStep(step);
+                if (step.type === 'calc_block') break;
+            }
+        };
+
+        document.getElementById('resetBtn').onclick = parseAndReset;
+
+        part1Btn.onclick = () => {
+            currentMode = 1;
+            part1Btn.classList.add('active-mode');
+            part2Btn.classList.remove('active-mode');
+            parseAndReset();
+        };
+
+        part2Btn.onclick = () => {
+            currentMode = 2;
+            part2Btn.classList.add('active-mode');
+            part1Btn.classList.remove('active-mode');
+            parseAndReset();
+        };
+
+        // Modal Handlers
+        inputBtn.onclick = () => {
+            inputModal.classList.add('show');
+            modalInputArea.value = rawInput;
+        };
+        closeModalBtn.onclick = () => inputModal.classList.remove('show');
+        useExampleBtn.onclick = () => {
+            rawInput = EXAMPLE_INPUT;
+            localStorage.removeItem('day06_input');
+            inputModal.classList.remove('show');
+            parseAndReset();
+        };
+        useCustomBtn.onclick = () => {
+            const val = modalInputArea.value;
+            if (val) {
+                rawInput = val;
+                localStorage.setItem('day06_input', val);
+                inputModal.classList.remove('show');
+                parseAndReset();
+            }
+        };
+
+        window.onload = init;
+
+    </script>
+</body>
+
+</html>
