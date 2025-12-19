@@ -347,6 +347,133 @@
                 box-shadow: inset 0 0 30px rgba(0, 255, 0, 0.3), 0 0 20px rgba(0, 255, 0, 0.5);
             }
         }
+
+        /* Input Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: rgba(16, 26, 40, 0.95);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .modal-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--metal-mid);
+            color: var(--accent);
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal-body label {
+            color: var(--metal-light);
+            font-size: 0.9rem;
+        }
+
+        .modal-body textarea {
+            flex: 1;
+            min-height: 200px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--metal-mid);
+            color: var(--text-color);
+            font-family: monospace;
+            font-size: 14px;
+            padding: 15px;
+            resize: none;
+            border-radius: 6px;
+        }
+
+        .modal-body textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--glow);
+        }
+
+        .modal-footer {
+            padding: 15px;
+            border-top: 1px solid var(--metal-mid);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-modal {
+            background: linear-gradient(145deg, var(--metal-mid), var(--metal-dark));
+            color: var(--text-color);
+            border: 1px solid var(--metal-mid);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-modal:hover {
+            background: var(--metal-light);
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(145deg, var(--accent), #0099cc);
+            color: #0a1520;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--glow);
+        }
+
+        .input-badge {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--metal-dark);
+            color: var(--metal-light);
+            margin-left: 10px;
+        }
+
+        .input-badge.custom {
+            background: rgba(255, 170, 0, 0.2);
+            color: var(--battery-gold, #ffaa00);
+            border: 1px solid rgba(255, 170, 0, 0.5);
+        }
     </style>
 </head>
 
@@ -392,13 +519,30 @@
             <button id="runBtn">▶ Run</button>
             <button id="stepBtn">⏭ Step</button>
             <button id="resetBtn">🔄 Reset</button>
+            <button id="inputBtn">⌨ Input <span id="inputBadge" class="input-badge">EX</span></button>
             <div class="speed-control">
                 <label>Speed:</label>
                 <input type="range" id="speed" min="10" max="500" value="200">
             </div>
         </div>
+    </div>
 
-        <textarea id="inputArea" placeholder="Loading example..."></textarea>
+    <!-- Input Modal -->
+    <div class="modal-overlay" id="inputModal">
+        <div class="modal">
+            <div class="modal-header">
+                BASE PARAMETERS
+                <button class="btn-modal" id="closeModalBtn" style="padding: 4px 8px; font-size: 1rem;">×</button>
+            </div>
+            <div class="modal-body">
+                <label>Enter standard-issue coordinate instructions:</label>
+                <textarea id="modalInputArea" placeholder="L5, R1, R3, L9..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal" id="useExampleBtn">Use Example</button>
+                <button class="btn-modal btn-primary" id="useCustomBtn">Load Data</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -413,7 +557,15 @@
         const stepBtn = document.getElementById('stepBtn');
         const resetBtn = document.getElementById('resetBtn');
         const speedSlider = document.getElementById('speed');
-        const inputArea = document.getElementById('inputArea');
+        const inputBtn = document.getElementById('inputBtn');
+        const inputBadge = document.getElementById('inputBadge');
+
+        // Modal Elements
+        const inputModal = document.getElementById('inputModal');
+        const modalInputArea = document.getElementById('modalInputArea');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const useExampleBtn = document.getElementById('useExampleBtn');
+        const useCustomBtn = document.getElementById('useCustomBtn');
 
         const exampleData = `L68
 L30
@@ -425,6 +577,22 @@ L1
 L99
 R14
 L82`;
+
+        const STORAGE_KEY = 'day1_custom_input';
+        let currentInput = localStorage.getItem(STORAGE_KEY) || exampleData;
+        let isCustom = !!localStorage.getItem(STORAGE_KEY);
+
+        // Update Badge
+        function updateBadge() {
+            if (isCustom) {
+                inputBadge.textContent = "CUSTOM";
+                inputBadge.classList.add('custom');
+            } else {
+                inputBadge.textContent = "EX";
+                inputBadge.classList.remove('custom');
+            }
+        }
+        updateBadge();
 
 
 
@@ -491,8 +659,12 @@ L82`;
         }
 
         function parseInstructions() {
-            const text = inputArea.value.trim();
-            instructions = text.split(/\r?\n/).filter(line => line.trim());
+            const text = currentInput.trim();
+            instructions = text.split(/\r?\n/).filter(line => line.trim()).map(line => line.trim().replace(/,$/, ''));
+            // Handle comma separated if user pastes single line
+            if (instructions.length === 1 && instructions[0].includes(',')) {
+                instructions = instructions[0].split(',').map(s => s.trim());
+            }
             currentIndex = 0;
         }
 
@@ -675,8 +847,44 @@ L82`;
         createDialNumbers();
         updateDial();
 
-        // Initialize with example data
-        inputArea.value = exampleData;
+        // Modal Logic
+        function openModal() {
+            modalInputArea.value = isCustom ? currentInput : '';
+            inputModal.classList.add('show');
+        }
+
+        function closeModal() {
+            inputModal.classList.remove('show');
+        }
+
+        function setCustomInput() {
+            const val = modalInputArea.value.trim();
+            if (val) {
+                currentInput = val;
+                isCustom = true;
+                localStorage.setItem(STORAGE_KEY, val);
+                updateBadge();
+                reset(); // Apply new input
+                closeModal();
+            }
+        }
+
+        function setExampleInput() {
+            currentInput = exampleData;
+            isCustom = false;
+            localStorage.removeItem(STORAGE_KEY);
+            updateBadge();
+            reset(); // Apply new input
+            closeModal();
+        }
+
+        inputBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
+        useCustomBtn.addEventListener('click', setCustomInput);
+        useExampleBtn.addEventListener('click', setExampleInput);
+        inputModal.addEventListener('click', (e) => {
+            if (e.target === inputModal) closeModal();
+        });
 
         runBtn.addEventListener('click', runAll);
         stepBtn.addEventListener('click', step);

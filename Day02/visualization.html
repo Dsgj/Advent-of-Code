@@ -427,6 +427,90 @@
             background: var(--crt-dim);
         }
 
+        /* Input Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--crt-bg);
+            border: 2px solid var(--crt-dim);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 10px;
+            border-bottom: 1px solid var(--crt-dim);
+            color: var(--crt-green);
+            font-size: 12px;
+        }
+
+        .modal-body {
+            padding: 15px;
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-body label {
+            color: var(--crt-dim);
+            font-size: 10px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .modal-body textarea {
+            flex: 1;
+            min-height: 200px;
+            background: var(--crt-dark);
+            border: 1px solid var(--crt-dim);
+            color: var(--crt-green);
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 10px;
+            resize: none;
+        }
+
+        .modal-body textarea:focus {
+            outline: 1px solid var(--crt-green);
+        }
+
+        .modal-footer {
+            padding: 10px;
+            border-top: 1px solid var(--crt-dim);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .input-indicator {
+            font-size: 9px;
+            color: var(--crt-dim);
+            padding: 0 5px;
+        }
+
+        .input-indicator.custom {
+            color: var(--crt-yellow);
+        }
+
         .speed-row {
             display: flex;
             align-items: center;
@@ -466,6 +550,9 @@
             <button class="btn" id="btnRun">▶ RUN</button>
             <button class="btn" id="btnStep">STEP</button>
             <button class="btn" id="btnReset">RESET</button>
+            <span style="width: 20px;"></span>
+            <button class="btn" id="btnInput">⚙ INPUT</button>
+            <span class="input-indicator" id="inputIndicator">[EXAMPLE]</span>
         </div>
 
         <div class="main-content">
@@ -515,8 +602,28 @@
         </div>
     </div>
 
+    <!-- Input Modal -->
+    <div class="modal-overlay" id="inputModal">
+        <div class="modal">
+            <div class="modal-header">╔══ CUSTOM INPUT ══╗</div>
+            <div class="modal-body">
+                <label>Paste your puzzle input below (format: start-end,start-end,...)</label>
+                <textarea id="customInput" placeholder="11-22,95-115,998-1012,..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="btnUseInput">USE INPUT</button>
+                <button class="btn" id="btnUseExample">USE EXAMPLE</button>
+                <button class="btn" id="btnCloseModal">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const EXAMPLE_INPUT = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
+        const STORAGE_KEY = 'day2_custom_input';
+
+        let currentInput = localStorage.getItem(STORAGE_KEY) || EXAMPLE_INPUT;
+        let usingCustom = localStorage.getItem(STORAGE_KEY) !== null;
 
         let currentPart = 1;
         let ranges = [];
@@ -536,6 +643,65 @@
         const btnStep = document.getElementById('btnStep');
         const btnReset = document.getElementById('btnReset');
         const speedSlider = document.getElementById('speedSlider');
+
+        // Modal elements
+        const inputModal = document.getElementById('inputModal');
+        const customInputEl = document.getElementById('customInput');
+        const inputIndicator = document.getElementById('inputIndicator');
+        const btnInput = document.getElementById('btnInput');
+        const btnUseInput = document.getElementById('btnUseInput');
+        const btnUseExample = document.getElementById('btnUseExample');
+        const btnCloseModal = document.getElementById('btnCloseModal');
+
+        function updateInputIndicator() {
+            if (usingCustom) {
+                inputIndicator.textContent = '[CUSTOM]';
+                inputIndicator.classList.add('custom');
+            } else {
+                inputIndicator.textContent = '[EXAMPLE]';
+                inputIndicator.classList.remove('custom');
+            }
+        }
+
+        function openModal() {
+            customInputEl.value = usingCustom ? currentInput : '';
+            inputModal.classList.add('show');
+        }
+
+        function closeModal() {
+            inputModal.classList.remove('show');
+        }
+
+        function useCustomInput() {
+            const input = customInputEl.value.trim();
+            if (input) {
+                currentInput = input;
+                usingCustom = true;
+                localStorage.setItem(STORAGE_KEY, input);
+                updateInputIndicator();
+                closeModal();
+                init();
+            }
+        }
+
+        function useExampleInput() {
+            currentInput = EXAMPLE_INPUT;
+            usingCustom = false;
+            localStorage.removeItem(STORAGE_KEY);
+            updateInputIndicator();
+            closeModal();
+            init();
+        }
+
+        btnInput.addEventListener('click', openModal);
+        btnCloseModal.addEventListener('click', closeModal);
+        btnUseInput.addEventListener('click', useCustomInput);
+        btnUseExample.addEventListener('click', useExampleInput);
+        inputModal.addEventListener('click', (e) => {
+            if (e.target === inputModal) closeModal();
+        });
+
+        updateInputIndicator();
 
         function sumAPInRange(minBase, maxBase, multiplier, rangeStart, rangeEnd) {
             const minValidBase = (rangeStart + multiplier - 1n) / multiplier;
@@ -864,7 +1030,7 @@
         }
 
         function init() {
-            ranges = parseRanges(EXAMPLE_INPUT);
+            ranges = parseRanges(currentInput);
             animationQueue = buildAnimationQueue(ranges, currentPart);
             queueIndex = 0;
             runningTotal = 0n;

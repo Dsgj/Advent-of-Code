@@ -16,7 +16,6 @@ function countAccessibleRolls(grid: string[][]): number {
         for (let c = 0; c < cols; c++) {
             if (grid[r][c] === '@') {
                 let neighborRolls = 0;
-                // Check 8 neighbors
                 for (let Dr = -1; Dr <= 1; Dr++) {
                     for (let dc = -1; dc <= 1; dc++) {
                         if (Dr === 0 && dc === 0) continue;

@@ -432,6 +432,134 @@
             -webkit-text-fill-color: transparent;
             animation: electric-flow 2s linear infinite;
         }
+
+        /* Input Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: #151a25;
+            border: 2px solid var(--electric-blue);
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.2);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 15px;
+            border-bottom: 1px solid #2a3a5a;
+            color: var(--electric-blue);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal-body label {
+            color: var(--dim-text);
+            font-size: 0.9rem;
+        }
+
+        .modal-body textarea {
+            flex: 1;
+            min-height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #2a3a5a;
+            color: var(--text-color);
+            font-family: 'Share Tech Mono', monospace;
+            padding: 15px;
+            resize: none;
+            border-radius: 6px;
+        }
+
+        .modal-body textarea:focus {
+            outline: none;
+            border-color: var(--battery-gold);
+            box-shadow: 0 0 10px var(--battery-glow);
+        }
+
+        .modal-footer {
+            padding: 15px;
+            border-top: 1px solid #2a3a5a;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-modal {
+            background: linear-gradient(180deg, #2a3a5a 0%, #1a2a4a 100%);
+            color: var(--electric-blue);
+            border: 1px solid var(--electric-blue);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .btn-modal:hover {
+            background: var(--electric-blue);
+            color: #000;
+            box-shadow: 0 0 15px var(--electric-glow);
+        }
+
+        .btn-primary {
+            border-color: var(--battery-gold);
+            color: var(--battery-gold);
+        }
+
+        .btn-primary:hover {
+            background: var(--battery-gold);
+            color: #000;
+            box-shadow: 0 0 15px var(--battery-glow);
+        }
+
+        .input-badge {
+            font-size: 0.7rem;
+            margin-left: 8px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #2a3a5a;
+            color: var(--dim-text);
+        }
+
+        .input-badge.custom {
+            border-color: var(--battery-gold);
+            color: var(--battery-gold);
+            box-shadow: 0 0 5px var(--battery-glow);
+        }
     </style>
 </head>
 
@@ -510,9 +638,28 @@
             <button id="runBtn">▶ RUN</button>
             <button id="stepBtn">⏭ STEP</button>
             <button id="resetBtn">↺ RESET</button>
+            <button id="inputBtn">INPUT <span id="inputBadge" class="input-badge">EX</span></button>
             <div class="speed-control">
                 <label>Speed:</label>
                 <input type="range" id="speedSlider" min="1" max="100" value="50">
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Modal -->
+    <div class="modal-overlay" id="inputModal">
+        <div class="modal">
+            <div class="modal-header">
+                BATTERY BANK CONFIG
+                <button class="btn-modal" id="closeModalBtn" style="padding: 0 8px;">×</button>
+            </div>
+            <div class="modal-body">
+                <label>Enter new battery bank parameters:</label>
+                <textarea id="modalInputArea" placeholder="9876543210..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal" id="useExampleBtn">Use Example</button>
+                <button class="btn-modal btn-primary" id="useCustomBtn">Load Data</button>
             </div>
         </div>
     </div>
@@ -552,6 +699,30 @@
         const part1Btn = document.getElementById('part1Btn');
         const part2Btn = document.getElementById('part2Btn');
         const algorithmSteps = document.querySelectorAll('.algorithm-step');
+
+        // Modal Elements
+        const inputBtn = document.getElementById('inputBtn');
+        const inputBadge = document.getElementById('inputBadge');
+        const inputModal = document.getElementById('inputModal');
+        const modalInputArea = document.getElementById('modalInputArea');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const useExampleBtn = document.getElementById('useExampleBtn');
+        const useCustomBtn = document.getElementById('useCustomBtn');
+
+        const STORAGE_KEY = 'day3_custom_input';
+        let currentInput = localStorage.getItem(STORAGE_KEY) || EXAMPLE_INPUT;
+        let isCustom = !!localStorage.getItem(STORAGE_KEY);
+
+        function updateBadge() {
+            if (isCustom) {
+                inputBadge.textContent = "CUSTOM";
+                inputBadge.classList.add('custom');
+            } else {
+                inputBadge.textContent = "EX";
+                inputBadge.classList.remove('custom');
+            }
+        }
+        updateBadge();
 
 
         function parseInput(input) {
@@ -867,7 +1038,7 @@
         }
 
         function init() {
-            const input = EXAMPLE_INPUT;
+            const input = currentInput;
             banks = parseInput(input);
             const count = currentPart === 1 ? 2 : 12;
 
@@ -960,12 +1131,43 @@
             }
         });
 
-        exampleBtn.addEventListener('click', () => {
-            if (!useExample) {
-                useExample = true;
-                exampleBtn.classList.add('active');
+        // Modal Logic
+        function openModal() {
+            modalInputArea.value = isCustom ? currentInput : '';
+            inputModal.classList.add('show');
+        }
+
+        function closeModal() {
+            inputModal.classList.remove('show');
+        }
+
+        function setCustomInput() {
+            const val = modalInputArea.value.trim();
+            if (val) {
+                currentInput = val;
+                isCustom = true;
+                localStorage.setItem(STORAGE_KEY, val);
+                updateBadge();
+                closeModal();
                 init();
             }
+        }
+
+        function setExampleInput() {
+            currentInput = EXAMPLE_INPUT;
+            isCustom = false;
+            localStorage.removeItem(STORAGE_KEY);
+            updateBadge();
+            closeModal();
+            init();
+        }
+
+        inputBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
+        useCustomBtn.addEventListener('click', setCustomInput);
+        useExampleBtn.addEventListener('click', setExampleInput);
+        inputModal.addEventListener('click', (e) => {
+            if (e.target === inputModal) closeModal();
         });
 
         // Initialize with example
