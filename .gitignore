@@ -25,4 +25,5 @@ yarn-debug.log*
 
 # Temporary/Agent files
 .gemini/
-.agent/
+.gemini/
+.agent/workflows/
