@@ -1,0 +1,344 @@
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@300&display=swap");
+
+:root {
+  --bg-color: #050a10;
+  --grid-bg: #0d1218;
+  --text-color: #a0c0e0;
+  --accent: #ffaa00;
+  --accent-glow: rgba(255, 170, 0, 0.4);
+  --safe-green: #00ff99;
+  --safe-glow: rgba(0, 255, 153, 0.4);
+  --danger-red: #ff3333;
+  --border-color: #1a2a3a;
+}
+
+/* Custom Scrollbar for Scratchcard Theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border: 1px solid var(--bg-color);
+  border-radius: 4px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+  box-shadow: 0 0 5px var(--accent-glow);
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: "Roboto Mono", monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  /* Reduced padding */
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  /* Prevent body scroll, handle inside grid */
+}
+
+header {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  /* Reduced margin */
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.25rem;
+  /* Reduced padding */
+}
+
+h1 {
+  font-family: "Orbitron", sans-serif;
+  color: var(--accent);
+  text-shadow: 0 0 10px var(--accent-glow);
+  font-size: 1.2rem;
+  /* Reduced font size */
+  margin: 0;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  background: rgba(255, 170, 0, 0.1);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+button:hover {
+  background: var(--accent);
+  color: #000;
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+button.active {
+  background: var(--safe-green);
+  border-color: var(--safe-green);
+  color: #000;
+}
+
+#main-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  flex: 1;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+#input-panel {
+  display: none;
+  /* Hidden by default when running */
+}
+
+#input-panel.visible {
+  display: block;
+}
+
+textarea {
+  width: 100%;
+  height: 100px;
+  background: #111;
+  color: #ccc;
+  border: 1px solid var(--border-color);
+  font-family: inherit;
+  padding: 0.5rem;
+  resize: none;
+}
+
+#stats-bar {
+  display: flex;
+  gap: 2rem;
+  font-family: "Orbitron", sans-serif;
+  font-size: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.stat-item span {
+  color: var(--safe-green);
+  text-shadow: 0 0 8px var(--safe-glow);
+}
+
+/* Responsive Grid Container */
+#grid-wrapper {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--grid-bg);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  /* No scroll here either, fit logic applies */
+  position: relative;
+  border-radius: 8px;
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+}
+
+#grid-container {
+  display: grid;
+  /* Grid layout set via inline styles */
+  gap: 1px;
+  padding: 4px;
+  transition: all 0.5s ease;
+}
+
+.cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  /* Dynamic via JS */
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 1px;
+}
+
+.roll {
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  background: #444;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* States */
+.roll.accessible {
+  background: var(--safe-green);
+  box-shadow: 0 0 10px var(--safe-green);
+  transform: scale(1.1);
+  z-index: 2;
+}
+
+.roll.removed {
+  background: transparent;
+  border: 1px solid #333;
+  transform: scale(0.5);
+  opacity: 0.3;
+}
+
+/* Decorative Grid Lines */
+#grid-wrapper::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(rgba(0, 255, 153, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 153, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+/* Input Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(2px);
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.modal {
+  background: rgba(13, 18, 24, 0.95);
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 30px rgba(255, 170, 0, 0.2);
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 15px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--accent);
+  font-family: "Orbitron", sans-serif;
+  font-size: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-body {
+  padding: 20px;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-body label {
+  color: var(--text-color);
+  opacity: 0.7;
+  font-size: 0.8rem;
+}
+
+.modal-body textarea {
+  flex: 1;
+  min-height: 200px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  font-family: monospace;
+  padding: 10px;
+  resize: none;
+  border-radius: 4px;
+}
+
+.modal-body textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.modal-footer {
+  padding: 15px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-modal {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.7rem;
+  transition: all 0.2s;
+}
+
+.btn-modal:hover {
+  background: var(--text-color);
+  color: var(--bg-color);
+}
+
+.btn-primary {
+  background: rgba(255, 170, 0, 0.1);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.btn-primary:hover {
+  background: var(--accent);
+  color: #000;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.input-badge {
+  font-size: 0.7rem;
+  margin-left: 5px;
+  opacity: 0.7;
+}
+
+.input-badge.custom {
+  color: var(--accent);
+  opacity: 1;
+  font-weight: bold;
+}
