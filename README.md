@@ -1,23 +1,40 @@
-# Advent of Code 2025 - Solutions & Visualizations
+# 🎄 Advent of Code 2025 - Antigravity IDE Test
 
-This repository contains my solutions for [Advent of Code 2025](https://adventofcode.com/2025).
+> **Testing Google's Antigravity IDE** through Advent of Code puzzles
 
-Each day includes a TypeScript solution and an interactive HTML/JS visualization to demonstrate the algorithm.
+This repository serves as a test case for evaluating **Google's Antigravity IDE** — an AI-powered development environment. The testing is focused on two aspects:
 
-## Project Structure
+1. **Problem Solving** — How well the AI solves the Advent of Code puzzles
+2. **Visualization Creation** — How effectively the AI creates clear, interactive visualizations of these problems
+
+## 🎯 Purpose
+
+[Advent of Code](https://adventofcode.com/2025) provides an excellent benchmark for AI-assisted development because it requires:
+
+- Understanding complex problem descriptions
+- Implementing correct algorithms
+- Creating engaging visual representations
+- Iterating based on user feedback
+
+Each day's solution and visualization was developed through pair-programming between the user and the AI within the Antigravity environment.
+
+## 📁 Project Structure
 
 For each day (e.g., `Day01`, `Day02`, ...), you will find:
 
-- **`solution.ts`**: The TypeScript logic solving Part 1 and Part 2.
-- **`visualization.html`**: A standalone interactive web page visualizing the problem and solution.
-- **`input.txt`**: My specific puzzle input.
-- **`exampleInput.txt`**: The example input provided in the problem description.
+| File                 | Description                               |
+| -------------------- | ----------------------------------------- |
+| `puzzle.md`          | The original puzzle description           |
+| `solution.ts`        | TypeScript solution for Part 1 and Part 2 |
+| `visualization.html` | Interactive web visualization             |
+| `style.css`          | Day-specific styling                      |
+| `input.txt`          | Puzzle input                              |
+| `exampleInput.txt`   | Example input from problem description    |
+| `TOF.md`             | Train of Thought - algorithm & approach   |
 
-## How to Run
+## 🚀 How to Run
 
 ### Solutions
-
-To run the solution for a specific day, use `ts-node`:
 
 ```bash
 npx ts-node DayXX/solution.ts
@@ -25,37 +42,37 @@ npx ts-node DayXX/solution.ts
 
 ### Visualizations
 
-Simply open the `visualization.html` file in your web browser. No build server is required for the visualizations; they are self-contained.
+Simply open `visualization.html` in your browser — no build step required.
 
 ## 🌐 Live Demo
 
-You can view the live visualizations here:
-[**Advent of Code 2025 - Visualization Portal**](https://dsgj.github.io/Advent-of-Code/)
+**[View All Visualizations →](https://dsgj.github.io/Advent-of-Code/)**
 
-The root URL loads the **Project Portal** ([`index.html`](https://github.com/Dsgj/Advent-of-Code/blob/main/index.html)) which links to all daily solutions.
+## 📊 Visualizations Gallery
 
-## Visualizations Gallery
+| Day | Title                                         | Theme                   |
+| --- | --------------------------------------------- | ----------------------- |
+| 01  | [Secret Entrance](./Day01/visualization.html) | Vault cracker dial      |
+| 02  | [Gift Shop](./Day02/visualization.html)       | Retro ASCII terminal    |
+| 03  | [Lobby](./Day03/visualization.html)           | Power station batteries |
+| 04  | [Escalators](./Day04/visualization.html)      | Grid pathfinding        |
+| 05  | [Sorting](./Day05/visualization.html)         | Rule-based sorting      |
+| 06  | [Guard](./Day06/visualization.html)           | Patrol simulation       |
+| 07  | [Laboratories](./Day07/visualization.html)    | Tachyon beam splitting  |
+| 08  | [Playground](./Day08/visualization.html)      | 3D circuit wiring       |
+| 09  | [Movie Theater](./Day09/visualization.html)   | Tile floor rectangles   |
 
-| Day | Title                                                  | Description                                                    |
-| --- | ------------------------------------------------------ | -------------------------------------------------------------- |
-| 01  | [Day 01 - Secret Entrance](./Day01/visualization.html) | A vault cracker theme unlocking the secret entrance.           |
-| 02  | [Day 02 - Gift Shop](./Day02/visualization.html)       | Retro ASCII terminal style scanner for the gift shop database. |
-| 03  | [Day 03 - Lobby](./Day03/visualization.html)           | Power station battery optimization with electric effects.      |
+## 🤖 AI Development Environment
 
-## Credits
+| Component             | Details                    |
+| --------------------- | -------------------------- |
+| **IDE**               | Antigravity (Google)       |
+| **Primary Model**     | Gemini 3 Pro (High)        |
+| **Alternative Model** | Claude Opus 4.5 (Thinking) |
 
-Advent of Code is created by [Eric Wastl](http://was.tl/).
-Puzzles, Code, & Design &copy; 2015-2025 Advent of Code. All rights reserved.
+All code, visualizations, and documentation were generated through AI pair-programming within the Antigravity environment.
 
-Support Advent of Code by creating a private leaderboard or grabbing some [AoC++](https://adventofcode.com/support) swag!
+## 📜 Credits
 
-## 🤖 AI-Assisted Development
-
-This project demonstrates the capabilities of modern AI in software development.
-
-- **IDE**: Antigravity
-- **Models**:
-  - **Gemini 3 Pro** (High)
-  - **Claude Opus 4.5** (Thinking)
-
-The code, visualizations, and documentation in this repository were generated through a pair-programming workflow between the user and these AI models within the Antigravity environment.
+- **Advent of Code** — Created by [Eric Wastl](http://was.tl/)
+- Puzzles, Code, & Design © 2015-2025 Advent of Code. All rights reserved.

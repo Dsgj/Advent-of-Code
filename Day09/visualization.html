@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advent of Code - Day 09 - Movie Theater</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="page-header">
+            <h1>🎬 MOVIE THEATER TILES 🎬</h1>
+            <div class="subtitle">Finding the Largest Rectangle • Red Tile Corners</div>
+        </div>
+
+        <div class="top-controls">
+            <button id="part1Btn" class="mode-btn active-mode">🎬 Part 1</button>
+            <button id="part2Btn" class="mode-btn">🎭 Part 2</button>
+        </div>
+
+        <div class="content-area">
+            <div class="viz-panel" id="vizPanel">
+                <canvas id="simCanvas"></canvas>
+            </div>
+
+            <div class="stats-sidebar">
+                <div class="stats-panel">
+                    <div class="panel-title">Status</div>
+                    <div id="statusText" class="status-text">Ready</div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="panel-title">Statistics</div>
+                    <div class="stat-row">
+                        <span class="stat-label">🔴 Red Tiles</span>
+                        <span class="stat-val" id="tileCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">📐 Pairs Checked</span>
+                        <span class="stat-val" id="pairCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">🏆 Best Area</span>
+                        <span class="stat-val gold" id="bestArea">0</span>
+                    </div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="panel-title">Current Rectangle</div>
+                    <div class="current-rect-info" id="currentRectInfo">
+                        Click Run to start
+                    </div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="panel-title">Legend</div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: var(--tile-red);"></div>
+                            <span>Red Tile</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #44aa66;"></div>
+                            <span>Green Tile</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #50c8dc; border: 1px dashed #50c8dc;"></div>
+                            <span>Current Rect</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #ffd700; box-shadow: 0 0 6px #d4a726;"></div>
+                            <span>Best Rect</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-controls">
+            <div class="control-group">
+                <button id="runBtn">▶ Run</button>
+                <button id="stepBtn">⏭ Step</button>
+                <button id="resetBtn">🔄 Reset</button>
+                <button id="inputBtn">📂 Load</button>
+            </div>
+            <div class="speed-control">
+                <label>Speed</label>
+                <input type="range" id="speedSlider" min="1" max="100" value="70">
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="inputModal">
+        <div class="modal">
+            <h2>🎬 Tile Coordinates</h2>
+            <p>Paste your puzzle input (X,Y per line)</p>
+            <textarea id="modalInputArea" placeholder="7,1
+11,1
+11,7
+..."></textarea>
+            <div class="modal-buttons">
+                <button id="useExampleBtn">🎁 Example</button>
+                <button id="useCustomBtn" class="active-mode">✨ Load</button>
+                <button id="closeModalBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const EXAMPLE_INPUT = `7,1
+11,1
+11,7
+9,7
+9,5
+2,5
+2,3
+7,3`;
+
+        // STATE
+        let rawInput = localStorage.getItem('day09_input') || EXAMPLE_INPUT;
+        let points = [];
+        let segments = [];
+        let currentMode = 1;
+        let isRunning = false;
+        let pairIndex = 0;
+        let bestRect = null;
+        let bestArea = 0;
+        let currentRect = null;
+        let pairs = [];
+        let greenTiles = null;
+        let bounds = null;
+
+        // Canvas
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const vizPanel = document.getElementById('vizPanel');
+
+        // DOM elements
+        const tileCountEl = document.getElementById('tileCount');
+        const pairCountEl = document.getElementById('pairCount');
+        const bestAreaEl = document.getElementById('bestArea');
+        const statusText = document.getElementById('statusText');
+        const currentRectInfo = document.getElementById('currentRectInfo');
+        const runBtn = document.getElementById('runBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const part1Btn = document.getElementById('part1Btn');
+        const part2Btn = document.getElementById('part2Btn');
+        const inputModal = document.getElementById('inputModal');
+
+        function parseInput(input) {
+            const lines = input.trim().split(/\r?\n/);
+            return lines.map((line, index) => {
+                const [x, y] = line.split(',').map(Number);
+                return { x, y, index };
+            });
+        }
+
+        function buildSegments(pts) {
+            const segs = [];
+            for (let i = 0; i < pts.length; i++) {
+                const p1 = pts[i];
+                const p2 = pts[(i + 1) % pts.length];
+                segs.push({
+                    x1: Math.min(p1.x, p2.x),
+                    y1: Math.min(p1.y, p2.y),
+                    x2: Math.max(p1.x, p2.x),
+                    y2: Math.max(p1.y, p2.y),
+                    isVertical: p1.x === p2.x
+                });
+            }
+            return segs;
+        }
+
+        function isOnPath(x, y, segs) {
+            for (const seg of segs) {
+                if (seg.isVertical) {
+                    if (x === seg.x1 && y >= seg.y1 && y <= seg.y2) return true;
+                } else {
+                    if (y === seg.y1 && x >= seg.x1 && x <= seg.x2) return true;
+                }
+            }
+            return false;
+        }
+
+        function isInsideOrOnPath(x, y, segs) {
+            if (isOnPath(x, y, segs)) return true;
+            let crossings = 0;
+            for (const seg of segs) {
+                if (!seg.isVertical) continue;
+                if (seg.x1 <= x) continue;
+                if (y >= seg.y1 && y < seg.y2) crossings++;
+            }
+            return crossings % 2 === 1;
+        }
+
+        function computeGreenTiles(pts, segs, bnd) {
+            const green = new Set();
+            // Add path tiles
+            for (const seg of segs) {
+                if (seg.isVertical) {
+                    for (let y = seg.y1; y <= seg.y2; y++) {
+                        green.add(`${seg.x1},${y}`);
+                    }
+                } else {
+                    for (let x = seg.x1; x <= seg.x2; x++) {
+                        green.add(`${x},${seg.y1}`);
+                    }
+                }
+            }
+            // For small bounds, compute interior
+            const w = bnd.maxX - bnd.minX + 1;
+            const h = bnd.maxY - bnd.minY + 1;
+            if (w * h < 50000) {
+                for (let y = bnd.minY; y <= bnd.maxY; y++) {
+                    for (let x = bnd.minX; x <= bnd.maxX; x++) {
+                        if (!green.has(`${x},${y}`) && isInsideOrOnPath(x, y, segs)) {
+                            green.add(`${x},${y}`);
+                        }
+                    }
+                }
+            }
+            return green;
+        }
+
+        function isRectValidPart2(rx1, ry1, rx2, ry2, segs) {
+            const xCoords = new Set([rx1, rx2]);
+            const yCoords = new Set([ry1, ry2]);
+
+            for (const seg of segs) {
+                if (seg.isVertical) {
+                    if (seg.x1 >= rx1 && seg.x1 <= rx2) {
+                        xCoords.add(seg.x1);
+                        if (seg.y1 >= ry1 && seg.y1 <= ry2) yCoords.add(seg.y1);
+                        if (seg.y2 >= ry1 && seg.y2 <= ry2) yCoords.add(seg.y2);
+                    }
+                } else {
+                    if (seg.y1 >= ry1 && seg.y1 <= ry2) {
+                        yCoords.add(seg.y1);
+                        if (seg.x1 >= rx1 && seg.x1 <= rx2) xCoords.add(seg.x1);
+                        if (seg.x2 >= rx1 && seg.x2 <= rx2) xCoords.add(seg.x2);
+                    }
+                }
+            }
+
+            const sortedX = Array.from(xCoords).sort((a, b) => a - b);
+            const sortedY = Array.from(yCoords).sort((a, b) => a - b);
+
+            for (const x of sortedX) {
+                if (!isInsideOrOnPath(x, ry1, segs)) return false;
+                if (!isInsideOrOnPath(x, ry2, segs)) return false;
+            }
+            for (const y of sortedY) {
+                if (!isInsideOrOnPath(rx1, y, segs)) return false;
+                if (!isInsideOrOnPath(rx2, y, segs)) return false;
+            }
+
+            for (let i = 0; i < sortedX.length - 1; i++) {
+                const midX = Math.floor((sortedX[i] + sortedX[i + 1]) / 2);
+                if (!isInsideOrOnPath(midX, ry1, segs)) return false;
+                if (!isInsideOrOnPath(midX, ry2, segs)) return false;
+            }
+            for (let i = 0; i < sortedY.length - 1; i++) {
+                const midY = Math.floor((sortedY[i] + sortedY[i + 1]) / 2);
+                if (!isInsideOrOnPath(rx1, midY, segs)) return false;
+                if (!isInsideOrOnPath(rx2, midY, segs)) return false;
+            }
+
+            for (let i = 0; i < sortedX.length - 1; i++) {
+                for (let j = 0; j < sortedY.length - 1; j++) {
+                    const midX = Math.floor((sortedX[i] + sortedX[i + 1]) / 2);
+                    const midY = Math.floor((sortedY[j] + sortedY[j + 1]) / 2);
+                    if (!isInsideOrOnPath(midX, midY, segs)) return false;
+                }
+            }
+
+            return true;
+        }
+
+        function init() {
+            parseAndReset();
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            requestAnimationFrame(loop);
+        }
+
+        function resizeCanvas() {
+            const rect = vizPanel.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+
+        function parseAndReset() {
+            isRunning = false;
+            points = parseInput(rawInput);
+            segments = buildSegments(points);
+
+            // Calculate bounds
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+            for (const p of points) {
+                minX = Math.min(minX, p.x);
+                maxX = Math.max(maxX, p.x);
+                minY = Math.min(minY, p.y);
+                maxY = Math.max(maxY, p.y);
+            }
+            bounds = { minX, maxX, minY, maxY };
+
+            // Generate all pairs
+            pairs = [];
+            for (let i = 0; i < points.length; i++) {
+                for (let j = i + 1; j < points.length; j++) {
+                    pairs.push([i, j]);
+                }
+            }
+
+            greenTiles = computeGreenTiles(points, segments, bounds);
+
+            pairIndex = 0;
+            bestRect = null;
+            bestArea = 0;
+            currentRect = null;
+
+            updateStats();
+            statusText.textContent = "Ready - Click Run!";
+            runBtn.textContent = '▶ Run';
+        }
+
+        let lastTime = 0;
+        let timeSinceStep = 0;
+
+        function loop(timestamp) {
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+
+            if (isRunning && pairIndex < pairs.length) {
+                const speed = parseInt(speedSlider.value);
+                const interval = Math.max(10, 300 - speed * 2.8);
+                timeSinceStep += dt;
+
+                if (timeSinceStep >= interval) {
+                    step();
+                    timeSinceStep = 0;
+                }
+            }
+
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        function step() {
+            if (pairIndex >= pairs.length) {
+                isRunning = false;
+                statusText.textContent = "✨ Complete!";
+                runBtn.textContent = '▶ Run';
+                return;
+            }
+
+            const [i, j] = pairs[pairIndex];
+            const p1 = points[i];
+            const p2 = points[j];
+
+            const rx1 = Math.min(p1.x, p2.x);
+            const rx2 = Math.max(p1.x, p2.x);
+            const ry1 = Math.min(p1.y, p2.y);
+            const ry2 = Math.max(p1.y, p2.y);
+
+            const area = (rx2 - rx1 + 1) * (ry2 - ry1 + 1);
+            let valid = true;
+
+            if (currentMode === 2) {
+                valid = isRectValidPart2(rx1, ry1, rx2, ry2, segments);
+            }
+
+            currentRect = { x1: rx1, y1: ry1, x2: rx2, y2: ry2, valid, area };
+
+            if (valid && area > bestArea) {
+                bestArea = area;
+                bestRect = { ...currentRect };
+            }
+
+            pairIndex++;
+            updateStats();
+        }
+
+        function updateStats() {
+            tileCountEl.textContent = points.length;
+            pairCountEl.textContent = `${pairIndex}/${pairs.length}`;
+            bestAreaEl.textContent = bestArea.toLocaleString();
+
+            if (currentRect) {
+                const status = currentMode === 2 ? (currentRect.valid ? '✅ Valid' : '❌ Invalid') : '';
+                currentRectInfo.innerHTML = `
+                    <div>Corners: (${currentRect.x1},${currentRect.y1}) → (${currentRect.x2},${currentRect.y2})</div>
+                    <div>Area: ${currentRect.area.toLocaleString()} ${status}</div>
+                `;
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#0d0505';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (points.length === 0) return;
+
+            // Calculate grid dimensions
+            const gridW = bounds.maxX - bounds.minX + 1;
+            const gridH = bounds.maxY - bounds.minY + 1;
+
+            // Limit grid rendering for very large inputs
+            const maxGridSize = 200;
+            const showGrid = gridW <= maxGridSize && gridH <= maxGridSize;
+
+            // Calculate tile size and offset to center the grid
+            const padding = 30;
+            const availW = canvas.width - padding * 2;
+            const availH = canvas.height - padding * 2;
+            const tileSize = Math.min(availW / gridW, availH / gridH);
+            const actualW = gridW * tileSize;
+            const actualH = gridH * tileSize;
+            const offsetX = padding + (availW - actualW) / 2;
+            const offsetY = padding + (availH - actualH) / 2;
+
+            const toScreenX = x => offsetX + (x - bounds.minX) * tileSize;
+            const toScreenY = y => offsetY + (y - bounds.minY) * tileSize;
+
+            // Create lookup sets for fast tile type checking
+            const redTileSet = new Set(points.map(p => `${p.x},${p.y}`));
+
+            if (showGrid) {
+                // Draw all tiles as a grid
+                for (let y = bounds.minY; y <= bounds.maxY; y++) {
+                    for (let x = bounds.minX; x <= bounds.maxX; x++) {
+                        const key = `${x},${y}`;
+                        const sx = toScreenX(x);
+                        const sy = toScreenY(y);
+                        const size = tileSize - 1; // Gap between tiles
+
+                        const isRed = redTileSet.has(key);
+                        const isGreen = greenTiles && greenTiles.has(key);
+
+                        if (isRed) {
+                            // Red tile - glowing
+                            ctx.fillStyle = '#cc3344';
+                            ctx.shadowColor = '#ff4466';
+                            ctx.shadowBlur = tileSize > 8 ? 6 : 2;
+                        } else if (isGreen && currentMode === 2) {
+                            // Green tile (path or interior)
+                            ctx.fillStyle = '#2a6644';
+                            ctx.shadowColor = '#44aa66';
+                            ctx.shadowBlur = tileSize > 8 ? 4 : 0;
+                        } else {
+                            // Empty tile - dim gray "turned off"
+                            ctx.fillStyle = '#1a1212';
+                            ctx.shadowBlur = 0;
+                        }
+
+                        ctx.fillRect(sx, sy, size, size);
+                        ctx.shadowBlur = 0;
+                    }
+                }
+
+                // Draw tile borders for better visibility
+                ctx.strokeStyle = '#2a1a1a';
+                ctx.lineWidth = 0.5;
+                for (let y = bounds.minY; y <= bounds.maxY; y++) {
+                    for (let x = bounds.minX; x <= bounds.maxX; x++) {
+                        const sx = toScreenX(x);
+                        const sy = toScreenY(y);
+                        ctx.strokeRect(sx, sy, tileSize - 1, tileSize - 1);
+                    }
+                }
+            } else {
+                // For large grids, use simplified rendering with better visibility
+                // Draw background
+                ctx.fillStyle = '#0d0808';
+                ctx.fillRect(offsetX, offsetY, actualW, actualH);
+
+                // Draw path segments as visible lines
+                ctx.strokeStyle = '#44aa66';
+                ctx.lineWidth = Math.max(2, tileSize * 3);
+                ctx.lineCap = 'round';
+                for (const seg of segments) {
+                    ctx.beginPath();
+                    ctx.moveTo(toScreenX(seg.x1) + tileSize / 2, toScreenY(seg.y1) + tileSize / 2);
+                    ctx.lineTo(toScreenX(seg.x2) + tileSize / 2, toScreenY(seg.y2) + tileSize / 2);
+                    ctx.stroke();
+                }
+
+                // Draw red tiles as prominent dots
+                const dotSize = Math.max(4, tileSize * 5);
+                ctx.fillStyle = '#cc3344';
+                ctx.shadowColor = '#ff4466';
+                ctx.shadowBlur = 8;
+                for (const p of points) {
+                    const cx = toScreenX(p.x) + tileSize / 2;
+                    const cy = toScreenY(p.y) + tileSize / 2;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, dotSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw current rectangle overlay (draw BEFORE best so best is on top)
+            if (currentRect && currentRect !== bestRect) {
+                const cx = toScreenX(currentRect.x1);
+                const cy = toScreenY(currentRect.y1);
+                const cw = (currentRect.x2 - currentRect.x1 + 1) * tileSize;
+                const ch = (currentRect.y2 - currentRect.y1 + 1) * tileSize;
+
+                if (currentRect.valid) {
+                    // Valid current - subtle cyan/teal
+                    ctx.fillStyle = 'rgba(80, 200, 220, 0.15)';
+                    ctx.strokeStyle = '#50c8dc';
+                } else {
+                    // Invalid - faded red dashed
+                    ctx.fillStyle = 'rgba(255, 80, 80, 0.1)';
+                    ctx.strokeStyle = '#ff6666';
+                }
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.fillRect(cx, cy, cw, ch);
+                ctx.strokeRect(cx, cy, cw, ch);
+                ctx.setLineDash([]);
+            }
+
+            // Draw best rectangle overlay - prominent golden with glow
+            if (bestRect) {
+                const bx = toScreenX(bestRect.x1);
+                const by = toScreenY(bestRect.y1);
+                const bw = (bestRect.x2 - bestRect.x1 + 1) * tileSize;
+                const bh = (bestRect.y2 - bestRect.y1 + 1) * tileSize;
+
+                // Golden fill
+                ctx.fillStyle = 'rgba(212, 167, 38, 0.35)';
+                ctx.fillRect(bx, by, bw, bh);
+
+                // Thick golden border with glow
+                ctx.shadowColor = '#d4a726';
+                ctx.shadowBlur = 12;
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(bx, by, bw, bh);
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw corner markers on red tiles for emphasis
+            if (tileSize > 6) {
+                for (const p of points) {
+                    const sx = toScreenX(p.x) + tileSize / 2 - 0.5;
+                    const sy = toScreenY(p.y) + tileSize / 2 - 0.5;
+                    const markerSize = Math.min(tileSize * 0.25, 4);
+
+                    ctx.fillStyle = '#ffaaaa';
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, markerSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Event listeners
+        runBtn.addEventListener('click', () => {
+            if (isRunning) {
+                isRunning = false;
+                runBtn.textContent = '▶ Run';
+                statusText.textContent = 'Paused';
+            } else {
+                if (pairIndex >= pairs.length) parseAndReset();
+                isRunning = true;
+                runBtn.textContent = '⏸ Pause';
+                statusText.textContent = 'Running...';
+            }
+        });
+
+        document.getElementById('stepBtn').addEventListener('click', () => {
+            isRunning = false;
+            runBtn.textContent = '▶ Run';
+            step();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', parseAndReset);
+
+        document.getElementById('inputBtn').addEventListener('click', () => {
+            document.getElementById('modalInputArea').value = rawInput;
+            inputModal.classList.add('show');
+        });
+
+        document.getElementById('closeModalBtn').addEventListener('click', () => {
+            inputModal.classList.remove('show');
+        });
+
+        document.getElementById('useExampleBtn').addEventListener('click', () => {
+            rawInput = EXAMPLE_INPUT;
+            localStorage.removeItem('day09_input');
+            inputModal.classList.remove('show');
+            parseAndReset();
+        });
+
+        document.getElementById('useCustomBtn').addEventListener('click', () => {
+            rawInput = document.getElementById('modalInputArea').value;
+            localStorage.setItem('day09_input', rawInput);
+            inputModal.classList.remove('show');
+            parseAndReset();
+        });
+
+        part1Btn.addEventListener('click', () => {
+            currentMode = 1;
+            part1Btn.classList.add('active-mode');
+            part2Btn.classList.remove('active-mode');
+            parseAndReset();
+        });
+
+        part2Btn.addEventListener('click', () => {
+            currentMode = 2;
+            part2Btn.classList.add('active-mode');
+            part1Btn.classList.remove('active-mode');
+            parseAndReset();
+        });
+
+        init();
+    </script>
+</body>
+
+</html>
