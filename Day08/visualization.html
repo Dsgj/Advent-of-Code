@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advent of Code - Day 08 - Playground</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Contained Layout */
+        body {
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 1200px;
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .page-header {
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            margin-bottom: 4px;
+        }
+
+        .page-header .subtitle {
+            font-size: 0.85rem;
+        }
+
+        /* Part Toggle at top */
+        .top-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .mode-btn {
+            padding: 10px 20px;
+            font-size: 0.8rem;
+        }
+
+        /* Main content area */
+        .content-area {
+            display: flex;
+            gap: 16px;
+            flex: 1;
+            min-height: 400px;
+        }
+
+        /* 3D Canvas Panel */
+        .viz-panel {
+            flex: 1;
+            background: radial-gradient(ellipse at center, #15101d 0%, #0a0610 100%);
+            border: 3px solid var(--panel-border);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .viz-panel canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Right sidebar with stats */
+        .stats-sidebar {
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .stats-panel {
+            background: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .panel-title {
+            font-family: var(--font-display);
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--toy-yellow);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-title::before {
+            content: "◆";
+            font-size: 8px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        .stat-val {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--light-white);
+        }
+
+        .stat-val.gold {
+            color: var(--light-gold);
+            text-shadow: 0 0 8px rgba(255, 204, 0, 0.5);
+        }
+
+        /* Circuit Legend */
+        .circuit-legend {
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 4px;
+            overflow-y: auto;
+        }
+
+        .circuit-chip {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            font-size: 0.7rem;
+        }
+
+        .circuit-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Status badge */
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--light-blue);
+            box-shadow: 0 0 6px var(--light-blue);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .status-text {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* Bottom controls */
+        .bottom-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .speed-control label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .speed-control input[type="range"] {
+            width: 100px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="page-header">
+            <h1>🎄 STRING LIGHTS 🎄</h1>
+            <div class="subtitle">Underground Playground · Junction Box Network</div>
+        </div>
+
+        <!-- Part Toggle -->
+        <div class="top-controls">
+            <button id="part1Btn" class="mode-btn active-mode">🎄 Part 1</button>
+            <button id="part2Btn" class="mode-btn">⭐ Part 2</button>
+        </div>
+
+        <!-- Main Content: Canvas + Stats Sidebar -->
+        <div class="content-area">
+            <!-- 3D Visualization -->
+            <div class="viz-panel" id="vizPanel">
+                <canvas id="simCanvas"></canvas>
+            </div>
+
+            <!-- Stats Sidebar -->
+            <div class="stats-sidebar">
+                <!-- Status -->
+                <div class="stats-panel">
+                    <div class="panel-title">Status</div>
+                    <div class="status-row">
+                        <div class="status-dot" id="statusDot"></div>
+                        <span class="status-text" id="headerStatus">Ready to Wire!</span>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-panel">
+                    <div class="panel-title">Light Stats</div>
+                    <div class="stat-row">
+                        <span class="stat-label">📦 Boxes</span>
+                        <span class="stat-val" id="boxCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">💫 Wires</span>
+                        <span class="stat-val" id="connectionCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">🔗 Circuits</span>
+                        <span class="stat-val" id="circuitCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">🌟 Answer</span>
+                        <span class="stat-val gold" id="resultDisplay">0</span>
+                    </div>
+                </div>
+
+                <!-- Circuit Legend -->
+                <div class="stats-panel"
+                    style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
+                    <div class="panel-title">Circuits</div>
+                    <div class="circuit-legend" id="circuitLegend" style="flex: 1; min-height: 0;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="bottom-controls">
+            <div class="control-group">
+                <button id="runBtn">💡 Wire Up!</button>
+                <button id="stepBtn">⏭ Step</button>
+                <button id="resetBtn">🔄 Reset</button>
+                <button id="inputBtn">📦 Load</button>
+            </div>
+            <div class="speed-control">
+                <label>Speed</label>
+                <input type="range" id="speedSlider" min="1" max="100" value="80">
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="inputModal">
+        <div class="modal">
+            <h2
+                style="color:var(--light-green); margin-top:0; border-bottom:2px solid #3d2255; padding-bottom:12px; font-family:var(--font-display);">
+                📦 Junction Box Coordinates</h2>
+            <p style="font-size:0.8rem; color:var(--text-dim);">Paste your puzzle input (X,Y,Z per line)</p>
+            <textarea id="modalInputArea" placeholder="162,817,812
+57,618,57
+906,360,560"></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button id="useExampleBtn">🎁 Example</button>
+                <button id="useCustomBtn" class="active-mode">✨ Load</button>
+                <button id="closeModalBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const EXAMPLE_INPUT = `162,817,812
+57,618,57
+906,360,560
+592,479,940
+352,342,300
+466,668,158
+542,29,236
+431,825,988
+739,650,466
+52,470,668
+216,146,977
+819,987,18
+117,168,530
+805,96,715
+346,949,466
+970,615,88
+941,993,340
+862,61,35
+984,92,344
+425,690,689`;
+
+        const REAL_INPUT = localStorage.getItem('day08_input') || '';
+
+        // Generate unique colors for each circuit using HSL
+        function generateCircuitColor(index, total) {
+            const hue = (index * 360 / Math.max(total, 1)) % 360;
+            const saturation = 70 + (index % 3) * 10; // 70-90%
+            const lightness = 55 + (index % 2) * 10; // 55-65%
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+
+        // Stable color map for circuits (keyed by root)
+        let circuitColorMap = new Map();
+
+        // STATE
+        let rawInput = REAL_INPUT || EXAMPLE_INPUT;
+        let points = [];
+        let pairs = [];
+        let uf = null;
+        let connectionsMade = 0;
+        let targetConnections = 10;
+        let isRunning = false;
+        let currentMode = 1;
+        let lastTime = 0;
+        let timeSinceLastStep = 0;
+        let tickCounter = 0;
+
+        // 3D rotation
+        let rotationY = 0.3;
+        let rotationX = 0.2;
+        let autoRotate = true;
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        // Canvas
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const vizPanel = document.getElementById('vizPanel');
+
+        // DOM elements
+        const boxCountEl = document.getElementById('boxCount');
+        const connectionCountEl = document.getElementById('connectionCount');
+        const circuitCountEl = document.getElementById('circuitCount');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const headerStatus = document.getElementById('headerStatus');
+        const statusDot = document.getElementById('statusDot');
+        const runBtn = document.getElementById('runBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const part1Btn = document.getElementById('part1Btn');
+        const part2Btn = document.getElementById('part2Btn');
+        const inputModal = document.getElementById('inputModal');
+        const inputBtn = document.getElementById('inputBtn');
+        const modalInputArea = document.getElementById('modalInputArea');
+        const useExampleBtn = document.getElementById('useExampleBtn');
+        const useCustomBtn = document.getElementById('useCustomBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        // Union-Find
+        class UnionFind {
+            constructor(n) {
+                this.parent = Array.from({ length: n }, (_, i) => i);
+                this.rank = new Array(n).fill(0);
+                this.size = new Array(n).fill(1);
+            }
+
+            find(x) {
+                if (this.parent[x] !== x) {
+                    this.parent[x] = this.find(this.parent[x]);
+                }
+                return this.parent[x];
+            }
+
+            union(x, y) {
+                const rootX = this.find(x);
+                const rootY = this.find(y);
+                if (rootX === rootY) return false;
+
+                if (this.rank[rootX] < this.rank[rootY]) {
+                    this.parent[rootX] = rootY;
+                    this.size[rootY] += this.size[rootX];
+                } else if (this.rank[rootX] > this.rank[rootY]) {
+                    this.parent[rootY] = rootX;
+                    this.size[rootX] += this.size[rootY];
+                } else {
+                    this.parent[rootY] = rootX;
+                    this.size[rootX] += this.size[rootY];
+                    this.rank[rootX]++;
+                }
+                return true;
+            }
+
+            getCircuitSizes() {
+                const roots = new Set();
+                for (let i = 0; i < this.parent.length; i++) {
+                    roots.add(this.find(i));
+                }
+                return Array.from(roots).map(root => this.size[root]);
+            }
+
+            getNumCircuits() {
+                const roots = new Set();
+                for (let i = 0; i < this.parent.length; i++) {
+                    roots.add(this.find(i));
+                }
+                return roots.size;
+            }
+        }
+
+        function parseInput(input) {
+            const lines = input.trim().split(/\r?\n/);
+            return lines.map((line, index) => {
+                const [x, y, z] = line.split(',').map(Number);
+                return { x, y, z, index };
+            });
+        }
+
+        function distanceSquared(a, b) {
+            const dx = a.x - b.x;
+            const dy = a.y - b.y;
+            const dz = a.z - b.z;
+            return dx * dx + dy * dy + dz * dz;
+        }
+
+        function getAllPairDistances(points) {
+            const pairs = [];
+            for (let i = 0; i < points.length; i++) {
+                for (let j = i + 1; j < points.length; j++) {
+                    pairs.push({
+                        i, j,
+                        distSq: distanceSquared(points[i], points[j])
+                    });
+                }
+            }
+            return pairs.sort((a, b) => a.distSq - b.distSq);
+        }
+
+        // INIT
+        function init() {
+            const stored = localStorage.getItem('day08_input');
+            if (stored) rawInput = stored;
+            parseAndReset();
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // Mouse controls for rotation
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                autoRotate = false;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            });
+            canvas.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    rotationY += (e.clientX - lastMouseX) * 0.005;
+                    rotationX += (e.clientY - lastMouseY) * 0.005;
+                    rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationX));
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                }
+            });
+            canvas.addEventListener('mouseup', () => isDragging = false);
+            canvas.addEventListener('mouseleave', () => isDragging = false);
+
+            requestAnimationFrame(loop);
+        }
+
+        function resizeCanvas() {
+            const rect = vizPanel.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+
+        function parseAndReset() {
+            stopAnimation();
+            points = parseInput(rawInput);
+            pairs = getAllPairDistances(points);
+            uf = new UnionFind(points.length);
+            connectionsMade = 0;
+
+            // Calculate bounds for normalization
+            if (points.length > 0) {
+                let minX = Infinity, maxX = -Infinity;
+                let minY = Infinity, maxY = -Infinity;
+                let minZ = Infinity, maxZ = -Infinity;
+
+                for (const p of points) {
+                    minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+                    minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+                    minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z);
+                }
+
+                window.dataBounds = {
+                    centerX: (minX + maxX) / 2,
+                    centerY: (minY + maxY) / 2,
+                    centerZ: (minZ + maxZ) / 2,
+                    rangeX: (maxX - minX) || 1,
+                    rangeY: (maxY - minY) || 1,
+                    rangeZ: (maxZ - minZ) || 1
+                };
+                window.dataBounds.maxRange = Math.max(
+                    window.dataBounds.rangeX,
+                    window.dataBounds.rangeY,
+                    window.dataBounds.rangeZ
+                );
+            }
+
+            const n = points.length;
+            targetConnections = n > 20 ? 1000 : Math.floor(n / 2);
+
+            updateStats();
+            headerStatus.textContent = "Ready to Wire!";
+            statusDot.style.background = "var(--light-blue)";
+            runBtn.textContent = '💡 Wire Up!';
+        }
+
+        function loop(timestamp) {
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+            tickCounter++;
+
+            if (autoRotate && !isDragging) {
+                rotationY += 0.003;
+            }
+
+            if (isRunning) {
+                const speedVal = parseInt(speedSlider.value);
+                let stepDuration = 500 - (speedVal * 4.5);
+                if (speedVal > 90) stepDuration = Math.max(10, 50 - (speedVal - 90) * 4);
+
+                timeSinceLastStep += dt;
+
+                if (timeSinceLastStep >= stepDuration) {
+                    stepSimulation();
+                    timeSinceLastStep = 0;
+                }
+            }
+
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        function stepSimulation() {
+            if (currentMode === 1) {
+                if (connectionsMade >= targetConnections || connectionsMade >= pairs.length) {
+                    headerStatus.textContent = "✨ All Lit Up!";
+                    statusDot.style.background = "var(--light-green)";
+                    stopAnimation();
+                    return;
+                }
+
+                const pair = pairs[connectionsMade];
+                uf.union(pair.i, pair.j);
+                connectionsMade++;
+            } else {
+                if (uf.getNumCircuits() === 1) {
+                    headerStatus.textContent = "🎄 One Big Circuit!";
+                    statusDot.style.background = "var(--light-gold)";
+                    stopAnimation();
+                    return;
+                }
+
+                while (connectionsMade < pairs.length) {
+                    const pair = pairs[connectionsMade];
+                    if (uf.find(pair.i) !== uf.find(pair.j)) {
+                        uf.union(pair.i, pair.j);
+                        connectionsMade++;
+                        break;
+                    }
+                    connectionsMade++;
+                }
+            }
+
+            updateStats();
+        }
+
+        function updateStats() {
+            boxCountEl.textContent = points.length;
+            connectionCountEl.textContent = connectionsMade;
+            circuitCountEl.textContent = uf ? uf.getNumCircuits() : points.length;
+
+            if (currentMode === 1) {
+                const sizes = uf ? uf.getCircuitSizes().sort((a, b) => b - a) : [];
+                const a = sizes[0] || 1;
+                const b = sizes[1] || 1;
+                const c = sizes[2] || 1;
+                resultDisplay.textContent = (a * b * c).toLocaleString();
+            } else {
+                if (uf && uf.getNumCircuits() === 1 && connectionsMade > 0) {
+                    const lastPair = pairs[connectionsMade - 1];
+                    const product = points[lastPair.i].x * points[lastPair.j].x;
+                    resultDisplay.textContent = product.toLocaleString();
+                } else {
+                    resultDisplay.textContent = "—";
+                }
+            }
+
+            updateCircuitLegend();
+        }
+
+        function updateCircuitLegend() {
+            const legend = document.getElementById('circuitLegend');
+            if (!uf) {
+                legend.innerHTML = '';
+                circuitColorMap.clear();
+                return;
+            }
+
+            // Get all circuits with their roots and sizes
+            const circuitInfo = [];
+            const seen = new Set();
+            for (let i = 0; i < points.length; i++) {
+                const root = uf.find(i);
+                if (!seen.has(root)) {
+                    seen.add(root);
+                    circuitInfo.push({ root, size: uf.size[root] });
+                }
+            }
+            circuitInfo.sort((a, b) => b.size - a.size);
+
+            // Assign stable colors to circuits
+            const totalCircuits = circuitInfo.length;
+            circuitInfo.forEach((info, idx) => {
+                if (!circuitColorMap.has(info.root)) {
+                    circuitColorMap.set(info.root, generateCircuitColor(circuitColorMap.size, Math.max(totalCircuits, 20)));
+                }
+            });
+
+            // Build legend HTML - show all circuits
+            const html = circuitInfo.map((info, i) => {
+                const color = circuitColorMap.get(info.root);
+                return `<div class="circuit-chip">
+                    <div class="circuit-dot" style="background: ${color}; box-shadow: 0 0 4px ${color};"></div>
+                    <span>${info.size}</span>
+                </div>`;
+            }).join('');
+
+            legend.innerHTML = html;
+        }
+
+        // 3D projection
+        function project(x, y, z) {
+            const bounds = window.dataBounds || {
+                centerX: 500, centerY: 500, centerZ: 500,
+                maxRange: 1000
+            };
+
+            const halfRange = bounds.maxRange / 2;
+            const nx = (x - bounds.centerX) / halfRange;
+            const ny = (y - bounds.centerY) / halfRange;
+            const nz = (z - bounds.centerZ) / halfRange;
+
+            const cosY = Math.cos(rotationY);
+            const sinY = Math.sin(rotationY);
+            const rx = nx * cosY - nz * sinY;
+            const rz = nx * sinY + nz * cosY;
+
+            const cosX = Math.cos(rotationX);
+            const sinX = Math.sin(rotationX);
+            const ry = ny * cosX - rz * sinX;
+            const rz2 = ny * sinX + rz * cosX;
+
+            const scale = Math.min(canvas.width, canvas.height) * 0.38;
+            const perspective = 2 / (2 + rz2);
+
+            return {
+                x: canvas.width / 2 + rx * scale * perspective,
+                y: canvas.height / 2 + ry * scale * perspective,
+                z: rz2,
+                scale: perspective
+            };
+        }
+
+        function draw() {
+            // Background
+            const grad = ctx.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 0,
+                canvas.width / 2, canvas.height / 2, canvas.width * 0.7
+            );
+            grad.addColorStop(0, '#1a0f25');
+            grad.addColorStop(1, '#0a0610');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawStars();
+
+            if (points.length === 0) return;
+
+            // Circuit colors - use the stable color map
+            const getPointColor = (pointIndex) => {
+                if (!uf) return 'hsl(0, 70%, 60%)';
+                const root = uf.find(pointIndex);
+                return circuitColorMap.get(root) || generateCircuitColor(0, 1);
+            };
+
+            // Project points
+            const projected = points.map(p => ({
+                ...project(p.x, p.y, p.z),
+                index: p.index,
+                original: p
+            }));
+
+            projected.sort((a, b) => a.z - b.z);
+
+            // Draw connections
+            ctx.lineCap = 'round';
+            for (let i = 0; i < connectionsMade && i < pairs.length; i++) {
+                const pair = pairs[i];
+                const p1 = project(points[pair.i].x, points[pair.i].y, points[pair.i].z);
+                const p2 = project(points[pair.j].x, points[pair.j].y, points[pair.j].z);
+
+                const color = getPointColor(pair.i);
+
+                // Glow
+                ctx.strokeStyle = color.replace(')', ', 0.25)').replace('hsl', 'hsla');
+                ctx.lineWidth = 4 * Math.min(p1.scale, p2.scale);
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+
+                // Core
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5 * Math.min(p1.scale, p2.scale);
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+            }
+
+            // Draw nodes
+            const baseRadius = points.length > 100 ? 2 : (points.length > 50 ? 3 : 4);
+            for (const p of projected) {
+                const color = getPointColor(p.index);
+                const radius = baseRadius + p.scale * baseRadius;
+
+                if (points.length <= 200) {
+                    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 2.5);
+                    grad.addColorStop(0, color.replace(')', ', 0.4)').replace('hsl', 'hsla'));
+                    grad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, radius * 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawStars() {
+            const time = tickCounter * 0.015;
+            for (let i = 0; i < 50; i++) {
+                const x = ((i * 137.5 + 50) % canvas.width);
+                const y = ((i * 73.3 + 30) % canvas.height);
+                const alpha = 0.15 + Math.sin(time + i * 0.5) * 0.1;
+                const size = 0.5 + (i % 3) * 0.3;
+
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function startAnimation() {
+            isRunning = true;
+            headerStatus.textContent = "⚡ Wiring...";
+            statusDot.style.background = "var(--light-gold)";
+            runBtn.textContent = '⏸ Pause';
+        }
+
+        function stopAnimation() {
+            isRunning = false;
+            runBtn.textContent = '💡 Wire Up!';
+        }
+
+        // Event Listeners
+        runBtn.addEventListener('click', () => {
+            if (isRunning) stopAnimation();
+            else startAnimation();
+        });
+
+        document.getElementById('stepBtn').addEventListener('click', () => {
+            if (!isRunning) stepSimulation();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', parseAndReset);
+
+        part1Btn.addEventListener('click', () => {
+            currentMode = 1;
+            part1Btn.classList.add('active-mode');
+            part2Btn.classList.remove('active-mode');
+            parseAndReset();
+        });
+
+        part2Btn.addEventListener('click', () => {
+            currentMode = 2;
+            part2Btn.classList.add('active-mode');
+            part1Btn.classList.remove('active-mode');
+            parseAndReset();
+        });
+
+        inputBtn.addEventListener('click', () => {
+            modalInputArea.value = rawInput;
+            inputModal.classList.add('show');
+        });
+
+        useExampleBtn.addEventListener('click', () => {
+            modalInputArea.value = EXAMPLE_INPUT;
+        });
+
+        useCustomBtn.addEventListener('click', () => {
+            rawInput = modalInputArea.value;
+            localStorage.setItem('day08_input', rawInput);
+            inputModal.classList.remove('show');
+            parseAndReset();
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            inputModal.classList.remove('show');
+        });
+
+        init();
+    </script>
+</body>
+
+</html>

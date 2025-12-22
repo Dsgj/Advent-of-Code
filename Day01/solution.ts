@@ -3,8 +3,6 @@ import { parseLines, readInput } from '../utils';
 // When running via `npx ts-node Day01/solution.ts`, the cwd is mainly project root.
 const exampleInput = readInput('Day01/exampleInput.txt');
 const input = readInput('Day01/input.txt');
-const exampleLines = parseLines(exampleInput);
-const lines = parseLines(input);
 
 /**
  * Day 01: Secret Entrance - Safe Dial Puzzle
@@ -23,7 +21,8 @@ const lines = parseLines(input);
  * - Use modulo 100 to handle wrapping.
  * - If the final position is 0, increment the counter.
  */
-function part1(lines: string[]) {
+function part1(input: string): number {
+    const lines = parseLines(input);
     let dial = 50;
     let zeroCount = 0;
 
@@ -46,21 +45,9 @@ function part1(lines: string[]) {
             zeroCount++;
         }
     }
-    console.log('Part 1 Result:', zeroCount);
+    return zeroCount;
 }
 
-/**
- * Part 2: Count how many times the dial points at 0 DURING any click.
- *
- * Logic:
- * - Same as Part 1, but simulate each individual click.
- * - For "R48", move the dial +1 forty-eight times.
- * - Check if dial === 0 after EACH click, not just at the end.
- * - This catches all the times the dial passes through 0.
- *
- * Example: If dial is at 50 and we do R1000, the dial passes through 0 ten times
- * before ending back at 50.
- */
 /**
  * Part 2: Count how many times the dial points at 0 DURING any click.
  *
@@ -69,7 +56,8 @@ function part1(lines: string[]) {
  * how many times the dial wraps around or crosses 0 in the given range.
  * Complexity: O(1) per instruction.
  */
-function part2(lines: string[]) {
+function part2(input: string): number {
+    const lines = parseLines(input);
     let dial = 50;
     let zeroCount = 0;
 
@@ -100,17 +88,19 @@ function part2(lines: string[]) {
             // Correct JS negative modulo behavior
             dial = ((dial - amount) % 100 + 100) % 100;
         }
-
-        // Check if we ended on 0 is NOT needed separately because the count covers the interval.
-        // Wait, the problem says "points at 0". 0 is a multiple of 100 (0 * 100).
-        // Our interval checks cover 0, 100, 200 etc.
-        // Since we map specific dial value '0' to multiples of 100 in linear space, this is correct.
     }
-    console.log('Part 2 Result:', zeroCount);
+    return zeroCount;
 }
 
-// Run both parts on example input first (for verification), then real input
-part1(exampleLines);
-part1(lines);
-part2(exampleLines);
-part2(lines);
+function run(name: string, input: string) {
+    console.log(`--- ${name} ---`);
+    console.log('Part 1:', part1(input).toString());
+    console.log('Part 2:', part2(input).toString());
+}
+
+if (exampleInput) run('Example', exampleInput);
+
+if (input.length > 0) {
+    run('Real Input', input);
+}
+
