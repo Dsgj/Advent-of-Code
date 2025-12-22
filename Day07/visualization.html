@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advent of Code - Day 07 - Multiverse Rift</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="main-screen">
+        <header>
+            <div>
+                <h1>MULTIVERSE RIFT</h1>
+                <div class="subtitle">QUANTUM MANIFOLD ENTANGLEMENT SYSTEM</div>
+            </div>
+            <div style="text-align: right;">
+                <div class="subtitle">RIFT STATUS</div>
+                <div style="color:var(--text-main); font-family:var(--font-mono);" id="headerStatus">STABLE</div>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+            <div class="viz-panel" id="vizPanel">
+                <div class="viz-area">
+                    <canvas id="simCanvas"></canvas>
+                </div>
+            </div>
+
+            <div class="sidebar-panel">
+                <div class="panel-box">
+                    <div class="section-title">REALITY MODE</div>
+                    <div class="btn-grid">
+                        <button id="part1Btn" class="active-mode">PART 1<br><span
+                                style="font-size:0.55rem; opacity:0.7">SPLIT EVENTS</span></button>
+                        <button id="part2Btn">PART 2<br><span style="font-size:0.55rem; opacity:0.7">TIMELINE
+                                BRANCHES</span></button>
+                    </div>
+                </div>
+
+                <div class="panel-box">
+                    <div class="section-title">RIFT CONTROL</div>
+                    <div class="btn-grid">
+                        <button id="runBtn">▶ ENGAGE</button>
+                        <button id="stepBtn">⏭ PULSE</button>
+                    </div>
+                    <button id="resetBtn" class="btn-full" style="margin-top:8px;">↺ COLLAPSE RIFT</button>
+                    <div style="margin-top: 15px;">
+                        <label class="stat-label">TEMPORAL DILATION</label>
+                        <input type="range" id="speedSlider" min="1" max="100" value="75">
+                    </div>
+                </div>
+
+                <div class="panel-box">
+                    <div class="section-title">MANIFOLD DATA</div>
+                    <button id="inputBtn" class="btn-full">INJECT CONFIGURATION</button>
+                </div>
+
+                <div class="panel-box" style="flex-grow: 1;">
+                    <div class="section-title">TELEMETRY</div>
+                    <div class="stat-row">
+                        <span class="stat-label">REALITY MODE</span>
+                        <span class="stat-val" id="modeDisplay">SPLITS</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">ACTIVE PARTICLES</span>
+                        <span class="stat-val" id="activeBeams">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label" id="resultLabel">SPLIT EVENTS</span>
+                        <span class="stat-val highlight" id="resultDisplay">0</span>
+                    </div>
+                    <div id="legendContainer" style="display: none; margin-top: 12px;">
+                        <div class="stat-label" style="margin-bottom: 6px;">TIMELINE DENSITY</div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 10px; color: #888;">1</span>
+                            <div
+                                style="flex: 1; height: 12px; border-radius: 4px; background: linear-gradient(to right, #ff0000, #ff8000, #ffff00);">
+                            </div>
+                            <span id="legendMaxVal" style="font-size: 10px; color: #888;">1</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="inputModal">
+        <div class="modal">
+            <h2
+                style="color:var(--wavefront-purple); margin-top:0; border-bottom:1px solid #333; padding-bottom:10px; font-family:var(--font-display);">
+                MANIFOLD INJECTION</h2>
+            <p style="font-size:0.75rem; color:var(--text-dim);">Paste grid configuration.</p>
+            <textarea id="modalInputArea" placeholder=".......S......."></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button id="useExampleBtn">EXAMPLE</button>
+                <button id="useCustomBtn" class="active-mode">INJECT</button>
+                <button id="closeModalBtn">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const EXAMPLE_INPUT = `.......S.......
+...............
+.......^.......
+...............
+......^.^......
+...............
+.....^.^.^.....
+...............
+....^.^...^....
+...............
+...^.^...^.^...
+...............
+..^...^.....^..
+...............
+.^.^.^.^.^...^.
+...............
+`;
+
+        // STATE
+        let rawInput = EXAMPLE_INPUT;
+        let grid = [];
+        let beams = [];
+        let timelineCounts = new Map();
+        let splitNodes = [];
+        let portalPos = null;
+        let resultCount = 0;
+        let isRunning = false;
+        let lastTime = 0;
+        let timeSinceLastMove = 0;
+        let currentMode = 1;
+        let tickCounter = 0;
+
+        // Persistent beam paths: Map of "x1,y1->x2,y2" -> count (for density)
+        let beamEdges = new Map();
+
+        // Track which positions came from splits (for Part 2 S: prefix)
+        let splitOrigins = new Map();
+
+        // Animation state
+        let moveProgress = 0;        // 0-1 interpolation between steps
+        let isAnimating = false;     // True during movement animation
+        let explosions = [];         // Array of {x, y, life, particles[]}
+        let prevBeams = [];          // Previous beam positions for interpolation
+
+        // 2-Phase animation: TRAVEL (0) -> SPLIT (1) -> TRAVEL (0) ...
+        let animPhase = 0;           // 0 = traveling, 1 = splitting (pause at splitter)
+        let pendingSplits = [];      // Splitter positions waiting for explosion
+        let splitProgress = 0;       // 0-1 progress through split animation
+
+        // STARS (Background)
+        let stars = [];
+        const NUM_STARS = 120;
+
+        // Canvas
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const vizPanel = document.getElementById('vizPanel');
+        let cellSize = 20;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        // DOM
+        const activeBeamsEl = document.getElementById('activeBeams');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const resultLabel = document.getElementById('resultLabel');
+        const modeDisplay = document.getElementById('modeDisplay');
+        const headerStatus = document.getElementById('headerStatus');
+        const runBtn = document.getElementById('runBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const part1Btn = document.getElementById('part1Btn');
+        const part2Btn = document.getElementById('part2Btn');
+        const inputModal = document.getElementById('inputModal');
+        const inputBtn = document.getElementById('inputBtn');
+        const modalInputArea = document.getElementById('modalInputArea');
+        const useExampleBtn = document.getElementById('useExampleBtn');
+        const useCustomBtn = document.getElementById('useCustomBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        // INIT
+        function init() {
+            const stored = localStorage.getItem('day07_input');
+            if (stored) rawInput = stored;
+            parseAndReset();
+            generateStars();
+            setTimeout(resizeCanvas, 50);
+            window.addEventListener('resize', resizeCanvas);
+            requestAnimationFrame(loop);
+        }
+
+        function generateStars() {
+            stars = [];
+            for (let i = 0; i < NUM_STARS; i++) {
+                stars.push({
+                    x: Math.random(),
+                    y: Math.random(),
+                    size: Math.random() * 1.5 + 0.5,
+                    alpha: Math.random() * 0.5 + 0.3,
+                    twinkleSpeed: Math.random() * 0.02 + 0.01
+                });
+            }
+        }
+
+        function resizeCanvas() {
+            const rect = vizPanel.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            if (grid.length > 0) {
+                const rows = grid.length;
+                const cols = grid[0].length;
+                const margin = 50;
+                const scaleX = (canvas.width - margin) / cols;
+                const scaleY = (canvas.height - margin) / rows;
+                cellSize = Math.min(scaleX, scaleY);
+                if (cellSize < 4) cellSize = 4;
+                offsetX = (canvas.width - cols * cellSize) / 2;
+                offsetY = (canvas.height - rows * cellSize) / 2;
+            }
+        }
+
+        function parseAndReset() {
+            stopAnimation();
+            const lines = rawInput.trim().split(/\r?\n/);
+            grid = lines;
+            beams = [];
+            timelineCounts.clear();
+            splitNodes = [];
+            portalPos = null;
+            resultCount = 0;
+            beamEdges.clear();
+            splitOrigins.clear();
+            tickCounter = 0;
+            animPhase = 0;
+            splitProgress = 0;
+            pendingSplits = [];
+            explosions = [];
+            prevBeams = [];
+
+            const height = lines.length;
+            const width = lines[0].length;
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const char = lines[y][x];
+                    if (char === 'S') {
+                        portalPos = { x, y };
+                        beams.push({ x, y, trail: [] });
+                        timelineCounts.set(`${x},${y}`, 1);
+                    } else if (char === '^') {
+                        splitNodes.push({ x, y, active: 0, rotation: Math.random() * Math.PI * 2 });
+                    }
+                }
+            }
+
+            updateStats();
+            headerStatus.textContent = "STABLE";
+            headerStatus.style.color = "var(--particle-cyan)";
+            runBtn.textContent = '▶ ENGAGE';
+            resizeCanvas();
+        }
+
+        function loop(timestamp) {
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+            tickCounter++;
+
+            if (isRunning) {
+                const speedVal = parseInt(speedSlider.value);
+                let stepDuration = 800 - (speedVal * 7.5);
+                if (speedVal > 90) stepDuration = Math.max(50, 100 - (speedVal - 90) * 5);
+                const splitDuration = stepDuration * 0.4; // Split phase is 40% of step time
+
+                timeSinceLastMove += dt;
+
+                if (animPhase === 0) {
+                    // PHASE 0: TRAVEL - beams moving toward next position
+                    moveProgress = Math.min(timeSinceLastMove / stepDuration, 1);
+
+                    if (moveProgress >= 1) {
+                        // Check if any beams will hit splitters
+                        prevBeams = beams.map(b => ({ x: b.x, y: b.y }));
+                        const splitterHits = checkForSplitterHits();
+
+                        if (splitterHits.length > 0) {
+                            // Enter split phase (explosions removed for performance)
+                            pendingSplits = splitterHits;
+                            animPhase = 1;
+                            splitProgress = 0;
+                            timeSinceLastMove = 0;
+                        } else {
+                            // No splitters - advance simulation immediately
+                            stepSimulation();
+                            moveProgress = 0;
+                            timeSinceLastMove = 0;
+                        }
+                    }
+                } else {
+                    // PHASE 1: SPLIT - pause at splitter, explosions active
+                    splitProgress = Math.min(timeSinceLastMove / splitDuration, 1);
+
+                    if (splitProgress >= 1) {
+                        // Split phase complete - now advance simulation
+                        stepSimulation();
+                        animPhase = 0;
+                        moveProgress = 0;
+                        splitProgress = 0;
+                        timeSinceLastMove = 0;
+                        pendingSplits = [];
+                    }
+                }
+            }
+
+            // Explosions removed for performance
+
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        function checkForSplitterHits() {
+            // Check which beams will hit splitters on next step
+            const height = grid.length;
+            const hits = [];
+
+            if (currentMode === 1) {
+                for (const beam of beams) {
+                    const nextY = beam.y + 1;
+                    if (nextY < height && grid[nextY][beam.x] === '^') {
+                        hits.push({ x: beam.x, y: nextY });
+                    }
+                }
+            } else {
+                for (const [key] of timelineCounts.entries()) {
+                    const [x, y] = key.split(',').map(Number);
+                    const nextY = y + 1;
+                    if (nextY < height && grid[nextY][x] === '^') {
+                        hits.push({ x, y: nextY });
+                    }
+                }
+            }
+            return hits;
+        }
+
+        function stepSimulation() {
+            if (beams.length === 0 && timelineCounts.size === 0) {
+                headerStatus.textContent = "COLLAPSED";
+                headerStatus.style.color = "var(--singularity-gold)";
+                stopAnimation();
+                return;
+            }
+
+            const height = grid.length;
+            const width = grid[0].length;
+            const activeSplitters = new Set();
+
+            if (currentMode === 1) {
+                // === PART 1: Exact match with solution.ts part1() ===
+                // Uses Map for deduplication (key -> Point)
+                const nextBeamsMap = new Map();
+
+                for (const beam of beams) {
+                    const nextX = beam.x;
+                    const nextY = beam.y + 1;
+
+                    // Helper to accumulate edge count
+                    const addEdge = (x1, y1, x2, y2) => {
+                        const key = `${x1},${y1}->${x2},${y2}`;
+                        beamEdges.set(key, (beamEdges.get(key) || 0) + 1);
+                    };
+
+                    if (nextY >= height) {
+                        addEdge(beam.x, beam.y, beam.x, nextY);
+                        continue;
+                    }
+
+                    const cell = grid[nextY][nextX];
+
+                    if (cell === '^') {
+                        resultCount++;
+                        activeSplitters.add(`${nextX},${nextY}`);
+                        addEdge(beam.x, beam.y, nextX, nextY);
+                        // Explosion is now triggered in loop() during phase transition
+                        // Mark that new beams start from a split (used for diagonal rendering)
+                        if (nextX - 1 >= 0) {
+                            const key = `${nextX - 1},${nextY}`;
+                            nextBeamsMap.set(key, { x: nextX - 1, y: nextY, fromSplit: true, splitX: nextX, trail: [...(beam.trail || []).slice(-8), { x: beam.x, y: beam.y }] });
+                        }
+                        if (nextX + 1 < width) {
+                            const key = `${nextX + 1},${nextY}`;
+                            nextBeamsMap.set(key, { x: nextX + 1, y: nextY, fromSplit: true, splitX: nextX, trail: [...(beam.trail || []).slice(-8), { x: beam.x, y: beam.y }] });
+                        }
+                    } else {
+                        // If beam came from a split, draw diagonal from splitter to midpoint
+                        // and mark the next edge as starting from split (S: prefix)
+                        if (beam.fromSplit && beam.splitX !== undefined) {
+                            // Diagonal edge: splitter -> midpoint (marked with D: prefix)
+                            const diagKey = `D:${beam.splitX},${beam.y}->${beam.x},${beam.y}`;
+                            beamEdges.set(diagKey, (beamEdges.get(diagKey) || 0) + 1);
+                            // Vertical edge from midpoint (marked with S: prefix for split-start)
+                            const edgeKey = `S:${beam.x},${beam.y}->${nextX},${nextY}`;
+                            beamEdges.set(edgeKey, (beamEdges.get(edgeKey) || 0) + 1);
+                        } else {
+                            addEdge(beam.x, beam.y, nextX, nextY);
+                        }
+                        const key = `${nextX},${nextY}`;
+                        nextBeamsMap.set(key, { x: nextX, y: nextY, trail: [...(beam.trail || []).slice(-8), { x: beam.x, y: beam.y }] });
+                    }
+                }
+
+                beams = Array.from(nextBeamsMap.values());
+
+            } else {
+                // === PART 2: Exact match with solution.ts part2() ===
+                // Uses Map for timeline counts (key -> count)
+                const nextTimelineCountsMap = new Map();
+                const nextSplitOrigins = new Map(); // Track which positions came from splits
+
+                for (const [key, count] of timelineCounts.entries()) {
+                    const [x, y] = key.split(',').map(Number);
+                    const wasFromSplit = splitOrigins && splitOrigins.has(key);
+
+                    const nextX = x;
+                    const nextY = y + 1;
+
+                    // Helper to accumulate edge count with timeline density
+                    const addEdge = (x1, y1, x2, y2, edgeCount, usePrefix = '') => {
+                        const edgeKey = `${usePrefix}${x1},${y1}->${x2},${y2}`;
+                        beamEdges.set(edgeKey, (beamEdges.get(edgeKey) || 0) + edgeCount);
+                    };
+
+                    if (nextY >= height) {
+                        resultCount += count;
+                        addEdge(x, y, x, nextY, count, wasFromSplit ? 'S:' : '');
+                        continue;
+                    }
+
+                    const cell = grid[nextY][nextX];
+
+                    if (cell === '^') {
+                        activeSplitters.add(`${nextX},${nextY}`);
+                        addEdge(x, y, nextX, nextY, count, wasFromSplit ? 'S:' : '');
+                        // Explosion is now triggered in loop() during phase transition
+                        // Add diagonal edges from splitter to new positions (marked with D:)
+                        if (nextX - 1 >= 0) {
+                            const diagKey = `D:${nextX},${nextY}->${nextX - 1},${nextY}`;
+                            beamEdges.set(diagKey, (beamEdges.get(diagKey) || 0) + count);
+                            const lKey = `${nextX - 1},${nextY}`;
+                            const currentL = nextTimelineCountsMap.get(lKey) || 0;
+                            nextTimelineCountsMap.set(lKey, currentL + count);
+                            nextSplitOrigins.set(lKey, true); // Mark as coming from split
+                        }
+                        if (nextX + 1 < width) {
+                            const diagKey = `D:${nextX},${nextY}->${nextX + 1},${nextY}`;
+                            beamEdges.set(diagKey, (beamEdges.get(diagKey) || 0) + count);
+                            const rKey = `${nextX + 1},${nextY}`;
+                            const currentR = nextTimelineCountsMap.get(rKey) || 0;
+                            nextTimelineCountsMap.set(rKey, currentR + count);
+                            nextSplitOrigins.set(rKey, true); // Mark as coming from split
+                        }
+                    } else {
+                        addEdge(x, y, nextX, nextY, count, wasFromSplit ? 'S:' : '');
+                        const nextKey = `${nextX},${nextY}`;
+                        const currentNext = nextTimelineCountsMap.get(nextKey) || 0;
+                        nextTimelineCountsMap.set(nextKey, currentNext + count);
+                    }
+                }
+
+                splitOrigins = nextSplitOrigins;
+
+                timelineCounts = nextTimelineCountsMap;
+
+                beams = [];
+                for (const [key, count] of timelineCounts.entries()) {
+                    const [x, y] = key.split(',').map(Number);
+                    beams.push({ x, y, count, trail: [] });
+                }
+            }
+
+            // Update splitter flash state
+            splitNodes.forEach(node => {
+                if (activeSplitters.has(`${node.x},${node.y}`)) {
+                    node.active = 15;
+                }
+            });
+
+            updateStats();
+        }
+
+        function createExplosion(gridX, gridY) {
+            const cx = offsetX + gridX * cellSize + cellSize / 2;
+            const cy = offsetY + gridY * cellSize + cellSize / 2;
+            const particles = [];
+            const numParticles = 12;
+
+            for (let i = 0; i < numParticles; i++) {
+                const angle = (i / numParticles) * Math.PI * 2;
+                const speed = 2 + Math.random() * 2;
+                particles.push({
+                    x: cx,
+                    y: cy,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    alpha: 1,
+                    size: cellSize * 0.15 + Math.random() * cellSize * 0.1
+                });
+            }
+
+            explosions.push({
+                x: cx,
+                y: cy,
+                life: 30,
+                particles
+            });
+        }
+
+        function updateStats() {
+            activeBeamsEl.textContent = beams.length;
+            resultDisplay.textContent = resultCount.toLocaleString();
+            resultLabel.textContent = currentMode === 1 ? "SPLIT EVENTS" : "BRANCH COUNT";
+            modeDisplay.textContent = currentMode === 1 ? "SPLITS" : "BRANCHES";
+
+            // Show legend only in Part 2
+            const legendContainer = document.getElementById('legendContainer');
+            legendContainer.style.display = currentMode === 2 ? 'block' : 'none';
+
+            // Update legend max value based on actual edge counts
+            if (currentMode === 2 && beamEdges.size > 0) {
+                let maxCount = 1;
+                beamEdges.forEach(count => {
+                    if (count > maxCount) maxCount = count;
+                });
+                document.getElementById('legendMaxVal').textContent = maxCount;
+            }
+        }
+
+        // DRAWING
+        function draw() {
+            // Clear with void color
+            ctx.fillStyle = '#030308';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 1. STARFIELD
+            drawStarfield();
+
+            if (grid.length === 0) return;
+
+            // 2. SPLITTERS (Draw FIRST so beams go over them)
+            drawSingularities();
+
+            // 3. BEAM PATHS (Persistent lines - drawn ON TOP of nodes)
+            drawBeamPaths();
+
+            // 4. PORTAL (Origin - on top of beams)
+            if (portalPos) drawPortal();
+
+            // 5. ACTIVE PARTICLES / WAVEFRONTS (Current position - topmost)
+            if (currentMode === 1) {
+                drawParticlesWithTrails();
+            } else {
+                drawWavefronts();
+            }
+
+            // Explosions removed for performance
+        }
+
+        function drawExplosions() {
+            explosions.forEach(exp => {
+                exp.particles.forEach(p => {
+                    if (p.alpha > 0) {
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        const color = currentMode === 1 ?
+                            `rgba(0, 229, 255, ${p.alpha})` :
+                            `rgba(255, 102, 204, ${p.alpha})`;
+                        ctx.fillStyle = color;
+                        ctx.fill();
+                    }
+                });
+            });
+        }
+
+        function drawStarfield() {
+            stars.forEach(star => {
+                const x = star.x * canvas.width;
+                const y = star.y * canvas.height;
+                // Twinkle
+                const alpha = star.alpha + Math.sin(tickCounter * star.twinkleSpeed) * 0.2;
+                ctx.beginPath();
+                ctx.arc(x, y, star.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, alpha)})`;
+                ctx.fill();
+            });
+        }
+
+        function drawBeamPaths() {
+            // Build path chains from edges to avoid glow overlap
+            // Group edges by their starting X coordinate to form continuous vertical paths
+
+            if (beamEdges.size === 0) return;
+
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // For Part 1: All edges have same weight, just draw without overlap
+            // For Part 2: Draw each edge with thickness based on count
+
+            if (currentMode === 1) {
+                // PART 1: Draw all edges as a single path to avoid overlap
+                ctx.setLineDash([]);
+
+                // Helper to calculate pixel coords with special handling for D: and S: edges
+                const getEdgeCoords = (edge) => {
+                    const isDiagonal = edge.startsWith('D:');
+                    const isSplitStart = edge.startsWith('S:');
+                    const cleanEdge = (isDiagonal || isSplitStart) ? edge.slice(2) : edge;
+                    const [from, to] = cleanEdge.split('->');
+                    const [x1, y1] = from.split(',').map(Number);
+                    const [x2, y2] = to.split(',').map(Number);
+
+                    if (isDiagonal) {
+                        // Diagonal edge from splitter: (x1,y1) -> (x2, y1+0.5)
+                        return {
+                            px1: offsetX + x1 * cellSize + cellSize / 2,
+                            py1: offsetY + y1 * cellSize + cellSize / 2,
+                            px2: offsetX + x2 * cellSize + cellSize / 2,
+                            py2: offsetY + y1 * cellSize + cellSize  // y1 + 0.5 cells
+                        };
+                    } else if (isSplitStart) {
+                        // Edge starting after split: start at (x1, y1+0.5)
+                        return {
+                            px1: offsetX + x1 * cellSize + cellSize / 2,
+                            py1: offsetY + y1 * cellSize + cellSize,  // y1 + 0.5 cells
+                            px2: offsetX + x2 * cellSize + cellSize / 2,
+                            py2: offsetY + y2 * cellSize + cellSize / 2
+                        };
+                    } else {
+                        // Normal edge
+                        return {
+                            px1: offsetX + x1 * cellSize + cellSize / 2,
+                            py1: offsetY + y1 * cellSize + cellSize / 2,
+                            px2: offsetX + x2 * cellSize + cellSize / 2,
+                            py2: offsetY + y2 * cellSize + cellSize / 2
+                        };
+                    }
+                };
+
+                // Outer glow - draw all edges at once
+                ctx.strokeStyle = 'rgba(0, 229, 255, 0.3)';
+                ctx.lineWidth = cellSize * 0.35;
+                ctx.beginPath();
+                beamEdges.forEach((count, edge) => {
+                    const coords = getEdgeCoords(edge);
+                    ctx.moveTo(coords.px1, coords.py1);
+                    ctx.lineTo(coords.px2, coords.py2);
+                });
+                ctx.stroke();
+
+                // Core line - draw all edges at once
+                ctx.strokeStyle = 'rgba(0, 229, 255, 1)';
+                ctx.lineWidth = cellSize * 0.1;
+                ctx.beginPath();
+                beamEdges.forEach((count, edge) => {
+                    const coords = getEdgeCoords(edge);
+                    ctx.moveTo(coords.px1, coords.py1);
+                    ctx.lineTo(coords.px2, coords.py2);
+                });
+                ctx.stroke();
+
+            } else {
+                // PART 2: Merge same-count edges with glow + gradient
+                const countGroups = new Map();
+                let maxEdgeCount = 1;
+
+                // Helper to calculate pixel coords with special handling for diagonal (D:) edges
+                const getEdgeCoords = (edge) => {
+                    const isDiagonal = edge.startsWith('D:');
+                    const isSplitStart = edge.startsWith('S:');
+                    const cleanEdge = (isDiagonal || isSplitStart) ? edge.slice(2) : edge;
+                    const [from, to] = cleanEdge.split('->');
+                    const [x1, y1] = from.split(',').map(Number);
+                    const [x2, y2] = to.split(',').map(Number);
+
+                    if (isDiagonal) {
+                        // Diagonal edge from splitter: (x1,y1) -> (x2, y1+0.5)
+                        return {
+                            px1: offsetX + x1 * cellSize + cellSize / 2,
+                            py1: offsetY + y1 * cellSize + cellSize / 2,
+                            px2: offsetX + x2 * cellSize + cellSize / 2,
+                            py2: offsetY + y1 * cellSize + cellSize  // y1 + 0.5 cells
+                        };
+                    } else if (isSplitStart) {
+                        // Edge starting after split: start at (x1, y1+0.5)
+                        return {
+                            px1: offsetX + x1 * cellSize + cellSize / 2,
+                            py1: offsetY + y1 * cellSize + cellSize,  // y1 + 0.5 cells
+                            px2: offsetX + x2 * cellSize + cellSize / 2,
+                            py2: offsetY + y2 * cellSize + cellSize / 2
+                        };
+                    } else {
+                        // Normal edge
+                        return {
+                            px1: offsetX + x1 * cellSize + cellSize / 2,
+                            py1: offsetY + y1 * cellSize + cellSize / 2,
+                            px2: offsetX + x2 * cellSize + cellSize / 2,
+                            py2: offsetY + y2 * cellSize + cellSize / 2
+                        };
+                    }
+                };
+
+                beamEdges.forEach((count, edge) => {
+                    if (count > maxEdgeCount) maxEdgeCount = count;
+                    if (!countGroups.has(count)) {
+                        countGroups.set(count, []);
+                    }
+                    countGroups.get(count).push(edge);  // Store full edge string
+                });
+
+                const maxLog = Math.log2(maxEdgeCount + 1);
+
+                // Pass 1: Draw all glows first
+                countGroups.forEach((edges, count) => {
+                    const logCount = Math.log2(count + 1);
+                    const t = maxLog > 0 ? Math.min(logCount / maxLog, 1) : 0;
+                    const uniformThickness = cellSize * 0.2; // Uniform thickness for all edges
+
+                    // Red→Yellow gradient
+                    const r = 255;
+                    const g = Math.floor(255 * t);
+                    const b = 0;
+
+                    ctx.setLineDash([]);
+                    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.3)`;
+                    ctx.lineWidth = uniformThickness * 2.5;
+                    ctx.beginPath();
+
+                    edges.forEach(edge => {
+                        const coords = getEdgeCoords(edge);
+                        ctx.moveTo(coords.px1, coords.py1);
+                        ctx.lineTo(coords.px2, coords.py2);
+                    });
+
+                    ctx.stroke();
+                });
+
+                // Pass 2: Draw all core lines on top
+                countGroups.forEach((edges, count) => {
+                    const logCount = Math.log2(count + 1);
+                    const t = maxLog > 0 ? Math.min(logCount / maxLog, 1) : 0;
+                    const uniformThickness = cellSize * 0.2; // Uniform thickness for all edges
+
+                    const r = 255;
+                    const g = Math.floor(255 * t);
+                    const b = 0;
+
+                    ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+                    ctx.lineWidth = uniformThickness;
+                    ctx.beginPath();
+
+                    edges.forEach(edge => {
+                        const coords = getEdgeCoords(edge);
+                        ctx.moveTo(coords.px1, coords.py1);
+                        ctx.lineTo(coords.px2, coords.py2);
+                    });
+
+                    ctx.stroke();
+                });
+            }
+        }
+
+        function drawPortal() {
+            const cx = offsetX + portalPos.x * cellSize + cellSize / 2;
+            const cy = offsetY + portalPos.y * cellSize + cellSize / 2;
+            const radius = cellSize * 0.6;
+
+            // Pulsing glow
+            const pulse = 1 + Math.sin(tickCounter * 0.05) * 0.2;
+
+            // Outer glow
+            const grad = ctx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius * 2 * pulse);
+            grad.addColorStop(0, 'rgba(255, 0, 170, 0.8)');
+            grad.addColorStop(0.5, 'rgba(255, 102, 204, 0.3)');
+            grad.addColorStop(1, 'rgba(255, 0, 170, 0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius * 2 * pulse, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Core
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawSingularities() {
+            splitNodes.forEach(node => {
+                const cx = offsetX + node.x * cellSize + cellSize / 2;
+                const cy = offsetY + node.y * cellSize + cellSize / 2;
+                const size = cellSize * 0.45;
+
+                // Rotation
+                node.rotation += 0.02;
+                if (node.active > 0) node.rotation += 0.1; // Faster when hit
+
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(node.rotation);
+
+                // Swirl spokes
+                const numSpokes = 6;
+                for (let i = 0; i < numSpokes; i++) {
+                    const angle = (i / numSpokes) * Math.PI * 2;
+                    ctx.strokeStyle = node.active > 0 ? '#ffaa00' : '#443300';
+                    ctx.lineWidth = node.active > 0 ? 2 : 1;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    const spiralX = Math.cos(angle) * size;
+                    const spiralY = Math.sin(angle) * size;
+                    ctx.lineTo(spiralX, spiralY);
+                    ctx.stroke();
+                }
+
+                // Center (Event Horizon)
+                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.5);
+                grad.addColorStop(0, node.active > 0 ? '#ffcc00' : '#222');
+                grad.addColorStop(1, '#000');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(0, 0, size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (node.active > 0) {
+                    node.active--;
+                    // Accretion ring
+                    ctx.strokeStyle = 'rgba(255, 170, 0, 0.5)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, size * 0.7, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            });
+        }
+
+        function drawParticlesWithTrails() {
+            beams.forEach(beam => {
+                const cx = offsetX + beam.x * cellSize + cellSize / 2;
+                const cy = offsetY + beam.y * cellSize + cellSize / 2;
+
+                // Particle Head
+                const radius = cellSize * 0.2;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#00e5ff';
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Outer glow
+                ctx.fillStyle = 'rgba(0, 229, 255, 0.5)';
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function drawWavefronts() {
+            // Group beams by Y to draw wavefront lines
+            const rowMap = new Map();
+            for (const [key, count] of timelineCounts.entries()) {
+                const [x, y] = key.split(',').map(Number);
+                if (!rowMap.has(y)) rowMap.set(y, []);
+                rowMap.get(y).push({ x, count });
+            }
+
+            rowMap.forEach((points, y) => {
+                points.sort((a, b) => a.x - b.x);
+
+                // Draw connecting line segments
+                for (let i = 0; i < points.length; i++) {
+                    const p = points[i];
+                    const cx = offsetX + p.x * cellSize + cellSize / 2;
+                    const cy = offsetY + y * cellSize + cellSize / 2;
+
+                    const logCount = Math.log10(p.count + 1);
+                    const width = cellSize * (0.15 + logCount * 0.12);
+
+                    // Vertical beam segment
+                    ctx.strokeStyle = `hsl(${270 - logCount * 10}, 100%, ${55 + logCount * 3}%)`;
+                    ctx.lineWidth = width;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(cx, cy - cellSize);
+                    ctx.stroke();
+
+                    // Hot core
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 + logCount * 0.1})`;
+                    ctx.lineWidth = width * 0.3;
+                    ctx.stroke();
+
+                    // Node
+                    const nodeRad = cellSize * 0.12 + logCount * 0.03 * cellSize;
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, nodeRad, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+
+        // CONTROLS
+        function startAnimation() {
+            if (beams.length === 0 && resultCount > 0) parseAndReset();
+            isRunning = true;
+            runBtn.textContent = '⏸ PAUSE';
+            headerStatus.textContent = "ACTIVE";
+            headerStatus.style.color = "var(--portal-magenta)";
+        }
+
+        function stopAnimation() {
+            isRunning = false;
+            runBtn.textContent = '▶ ENGAGE';
+            headerStatus.textContent = "PAUSED";
+            headerStatus.style.color = "var(--singularity-orange)";
+        }
+
+        runBtn.onclick = () => isRunning ? stopAnimation() : startAnimation();
+        document.getElementById('stepBtn').onclick = () => { stopAnimation(); stepSimulation(); draw(); };
+        document.getElementById('resetBtn').onclick = parseAndReset;
+
+        part1Btn.onclick = () => {
+            currentMode = 1;
+            part1Btn.classList.add('active-mode');
+            part2Btn.classList.remove('active-mode');
+            parseAndReset();
+        };
+        part2Btn.onclick = () => {
+            currentMode = 2;
+            part2Btn.classList.add('active-mode');
+            part1Btn.classList.remove('active-mode');
+            parseAndReset();
+        };
+
+        inputBtn.onclick = () => { inputModal.classList.add('show'); modalInputArea.value = rawInput; };
+        closeModalBtn.onclick = () => inputModal.classList.remove('show');
+        useExampleBtn.onclick = () => {
+            rawInput = EXAMPLE_INPUT;
+            localStorage.removeItem('day07_input');
+            inputModal.classList.remove('show');
+            parseAndReset();
+        };
+        useCustomBtn.onclick = () => {
+            const val = modalInputArea.value;
+            if (val) {
+                rawInput = val;
+                localStorage.setItem('day07_input', val);
+                inputModal.classList.remove('show');
+                parseAndReset();
+            }
+        };
+
+        window.onload = init;
+    </script>
+</body>
+
+</html>
