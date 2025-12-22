@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advent of Code - Day 10 - Factory</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="main-container">
+        <header class="page-header">
+            <h1>🏭 Factory Control Panel 🔧</h1>
+            <p class="subtitle">Day 10: Indicator Light & Joltage Configuration</p>
+        </header>
+
+        <div class="top-controls">
+            <button id="loadInputBtn">📥 Load Input</button>
+            <button id="resetBtn">🔄 Reset</button>
+            <div class="button-group">
+                <button id="part1Btn" class="active-mode">💡 Part 1: Lights</button>
+                <button id="part2Btn">⚡ Part 2: Joltage</button>
+            </div>
+            <button id="solveBtn">⚡ Solve All</button>
+            <button id="stepBtn">👆 Step</button>
+        </div>
+
+        <div class="content-area">
+            <div class="viz-panel" id="machinesContainer">
+                <!-- Machines will be rendered here -->
+            </div>
+
+            <div class="stats-sidebar">
+                <div class="stats-panel">
+                    <div class="panel-title">Statistics</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Total Machines</span>
+                        <span class="stat-val" id="totalMachines">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Solved</span>
+                        <span class="stat-val green" id="solvedCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Total Presses</span>
+                        <span class="stat-val gold" id="totalPresses">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Current Machine</span>
+                        <span class="stat-val" id="currentMachine">-</span>
+                    </div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="panel-title">Legend</div>
+                    <div class="legend" id="legendContainer">
+                        <!-- Legend items injected by JS -->
+                    </div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="panel-title">Speed</div>
+                    <div class="speed-control">
+                        <label>🐢</label>
+                        <input type="range" id="speedSlider" min="1" max="10" value="7">
+                        <label>🐇</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Modal -->
+    <div class="modal-overlay" id="inputModal">
+        <div class="modal">
+            <h2>📥 Load Puzzle Input</h2>
+            <p>Paste your puzzle input below:</p>
+            <textarea id="inputText" placeholder="[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
+..."></textarea>
+            <div class="modal-buttons">
+                <button id="useExampleBtn">Use Example</button>
+                <button id="loadBtn">Load</button>
+                <button id="cancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const EXAMPLE_INPUT = `[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
+[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}`;
+
+        let machines = [];
+        let currentMachineIndex = 0;
+        let totalPresses = 0;
+        let solving = false;
+        let animationTimeout = null;
+        let currentMode = 'lights'; // 'lights' or 'joltage'
+
+        // Rational Number Class for Part 2 Solver
+        class Rat {
+            constructor(n, d = 1n) {
+                this.n = BigInt(n);
+                this.d = BigInt(d);
+                this.simplify();
+            }
+            simplify() {
+                if (this.d < 0n) { this.n = -this.n; this.d = -this.d; }
+                const g = this.gcd(this.abs(this.n), this.d);
+                this.n /= g;
+                this.d /= g;
+            }
+            gcd(a, b) { return b === 0n ? a : this.gcd(b, a % b); }
+            abs(a) { return a < 0n ? -a : a; }
+            add(other) { return new Rat(this.n * other.d + other.n * this.d, this.d * other.d); }
+            sub(other) { return new Rat(this.n * other.d - other.n * this.d, this.d * other.d); }
+            mul(other) { return new Rat(this.n * other.n, this.d * other.d); }
+            div(other) { return new Rat(this.n * other.d, this.d * other.n); }
+            isZero() { return this.n === 0n; }
+            isInteger() { return this.d === 1n; }
+            toBigInt() { return this.n / this.d; }
+        }
+
+        function parseLine(line) {
+            const targetMatch = line.match(/\[([.#]+)\]/);
+            if (!targetMatch) return null;
+
+            const targetStr = targetMatch[1];
+            const targetState = targetStr.split('').map(c => c === '#');
+
+            const buttonMatches = [...line.matchAll(/\(([0-9,]+)\)/g)];
+            const buttons = buttonMatches.map(match =>
+                match[1].split(',').map(Number)
+            );
+
+            const countMatch = line.match(/\{([0-9,]+)\}/);
+            let targetCounts = null;
+            if (countMatch) {
+                targetCounts = countMatch[1].split(',').map(Number);
+            }
+
+            return {
+                targetState,
+                targetCounts,
+                buttons,
+                // Lights Mode State
+                currentLightState: new Array(targetState.length).fill(false),
+                pressedButtons1: new Set(), // Set of button indices
+                solved1: false,
+                solution1: null, // Bitmask
+                minPresses1: 0,
+
+                // Joltage Mode State
+                currentCounts: targetCounts ? new Array(targetCounts.length).fill(0) : [],
+                pressedButtons2: new Map(), // Map<buttonIdx, count>
+                solved2: false,
+                solution2: null, // Map<buttonIdx, count>
+                minPresses2: 0
+            };
+        }
+
+        function parseInput(input) {
+            return input.trim().split(/\r?\n/)
+                .map(parseLine)
+                .filter(m => m !== null);
+        }
+
+        // --- Solvers ---
+
+        function findMinPressesPart1(machine) {
+            const { targetState, buttons } = machine;
+            const numLights = targetState.length;
+            const numButtons = buttons.length;
+
+            let minPresses = Infinity;
+            let bestMask = 0;
+
+            for (let mask = 0; mask < (1 << numButtons); mask++) {
+                const state = new Array(numLights).fill(false);
+                let presses = 0;
+
+                for (let b = 0; b < numButtons; b++) {
+                    if (mask & (1 << b)) {
+                        presses++;
+                        for (const lightIdx of buttons[b]) {
+                            if (lightIdx < numLights) {
+                                state[lightIdx] = !state[lightIdx];
+                            }
+                        }
+                    }
+                }
+
+                let matches = true;
+                for (let i = 0; i < numLights; i++) {
+                    if (state[i] !== targetState[i]) {
+                        matches = false;
+                        break;
+                    }
+                }
+
+                if (matches && presses < minPresses) {
+                    minPresses = presses;
+                    bestMask = mask;
+                }
+            }
+
+            return minPresses === Infinity ? { minPresses: 0, bestMask: null } : { minPresses, bestMask };
+        }
+
+        function solvePart2(machine) {
+            const { targetCounts, buttons } = machine;
+            if (!targetCounts) return { minPresses: 0, solution: null };
+
+            const numRows = targetCounts.length;
+            const numCols = buttons.length;
+
+            const A = Array.from({ length: numRows }, () =>
+                Array.from({ length: numCols }, () => new Rat(0))
+            );
+            const b = targetCounts.map(v => new Rat(v));
+
+            buttons.forEach((btn, colIdx) => {
+                btn.forEach(rowIdx => {
+                    if (rowIdx < numRows) {
+                        A[rowIdx][colIdx] = new Rat(1);
+                    }
+                });
+            });
+
+            const pivotRow = new Array(numCols).fill(-1);
+            const pivotCol = new Array(numRows).fill(-1);
+
+            let currentRow = 0;
+            const freeCols = [];
+            const basicCols = [];
+
+            for (let col = 0; col < numCols; col++) {
+                let pivot = -1;
+                for (let row = currentRow; row < numRows; row++) {
+                    if (!A[row][col].isZero()) {
+                        pivot = row;
+                        break;
+                    }
+                }
+
+                if (pivot === -1) {
+                    freeCols.push(col);
+                    continue;
+                }
+
+                basicCols.push(col);
+
+                [A[currentRow], A[pivot]] = [A[pivot], A[currentRow]];
+                [b[currentRow], b[pivot]] = [b[pivot], b[currentRow]];
+                pivot = currentRow;
+
+                const divVal = A[pivot][col];
+                for (let j = col; j < numCols; j++) {
+                    A[pivot][j] = A[pivot][j].div(divVal);
+                }
+                b[pivot] = b[pivot].div(divVal);
+
+                for (let row = 0; row < numRows; row++) {
+                    if (row !== pivot && !A[row][col].isZero()) {
+                        const factor = A[row][col];
+                        for (let j = col; j < numCols; j++) {
+                            A[row][j] = A[row][j].sub(factor.mul(A[pivot][j]));
+                        }
+                        b[row] = b[row].sub(factor.mul(b[pivot]));
+                    }
+                }
+
+                pivotRow[col] = pivot;
+                pivotCol[pivot] = col;
+                currentRow++;
+            }
+
+            for (let row = currentRow; row < numRows; row++) {
+                if (!b[row].isZero()) return { minPresses: 0, solution: null };
+            }
+
+            const maxVal = Math.max(...targetCounts);
+            let minTotalPresses = Infinity;
+            let bestSolution = null;
+
+            const x = new Array(numCols).fill(0n);
+
+            const search = (freeIdx) => {
+                if (freeIdx === freeCols.length) {
+                    let valid = true;
+                    for (let i = basicCols.length - 1; i >= 0; i--) {
+                        const col = basicCols[i];
+                        const row = pivotRow[col];
+                        let sum = b[row];
+                        for (const fCol of freeCols) {
+                            if (!A[row][fCol].isZero()) {
+                                sum = sum.sub(A[row][fCol].mul(new Rat(x[fCol])));
+                            }
+                        }
+
+                        if (!sum.isInteger() || sum.n < 0n) {
+                            valid = false;
+                            return;
+                        }
+                        x[col] = sum.toBigInt();
+                    }
+
+                    if (valid) {
+                        let sum = 0n;
+                        for (let i = 0; i < numCols; i++) sum += x[i];
+                        if (Number(sum) < minTotalPresses) {
+                            minTotalPresses = Number(sum);
+                            bestSolution = new Map();
+                            for (let i = 0; i < numCols; i++) {
+                                if (x[i] > 0n) bestSolution.set(i, Number(x[i]));
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                const fCol = freeCols[freeIdx];
+                for (let val = 0; val <= maxVal; val++) {
+                    x[fCol] = BigInt(val);
+                    search(freeIdx + 1);
+                }
+            };
+
+            // Safety check just in case browser hangs
+            if (freeCols.length > 4) {
+                console.warn('Visualization safety: too many free vars, using simple approximation (0)');
+                freeCols.forEach(c => x[c] = 0n);
+                search(freeCols.length); // Try only 0
+            } else {
+                search(0);
+            }
+
+            return minTotalPresses === Infinity ? { minPresses: 0, solution: null } : { minPresses: minTotalPresses, solution: bestSolution };
+        }
+
+        // --- UI Logic ---
+
+        function toggleButton(machineIdx, buttonIdx) {
+            const machine = machines[machineIdx];
+
+            if (currentMode === 'lights') {
+                // Toggle (XOR)
+                if (machine.pressedButtons1.has(buttonIdx)) {
+                    machine.pressedButtons1.delete(buttonIdx);
+                } else {
+                    machine.pressedButtons1.add(buttonIdx);
+                }
+
+                machine.currentLightState = new Array(machine.targetState.length).fill(false);
+                for (const bIdx of machine.pressedButtons1) {
+                    for (const lightIdx of machine.buttons[bIdx]) {
+                        if (lightIdx < machine.currentLightState.length) {
+                            machine.currentLightState[lightIdx] = !machine.currentLightState[lightIdx];
+                        }
+                    }
+                }
+
+                machine.solved1 = machine.currentLightState.every((s, i) => s === machine.targetState[i]);
+            } else {
+                // Increment (Add) - only if not solving automatically (or handle increments?)
+                // Manual interactions in Part 2 are additive. Each click adds 1 press.
+                // We track counts in map.
+                const currentCount = machine.pressedButtons2.get(buttonIdx) || 0;
+                // User interaction: simple click adds 1. (Shift-click to remove?)
+                machine.pressedButtons2.set(buttonIdx, currentCount + 1);
+
+                // Recalculate
+                if (machine.targetCounts) {
+                    machine.currentCounts = new Array(machine.targetCounts.length).fill(0);
+                    for (const [bIdx, count] of machine.pressedButtons2) {
+                        for (const cIdx of machine.buttons[bIdx]) {
+                            if (cIdx < machine.currentCounts.length) {
+                                machine.currentCounts[cIdx] += count; // Add 'count' times
+                            }
+                        }
+                    }
+
+                    machine.solved2 = machine.currentCounts.every((v, i) => v === machine.targetCounts[i]);
+                }
+            }
+
+            renderMachines();
+            updateStats();
+        }
+
+        function formatButtonLabel(indices) {
+            return `(${indices.join(',')})`;
+        }
+
+        function updateLegend() {
+            const container = document.getElementById('legendContainer');
+            if (currentMode === 'lights') {
+                container.innerHTML = `
+            <div class="legend-item">
+                <div class="legend-light on"></div>
+                <span>Light ON</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-light off"></div>
+                <span>Light OFF</span>
+            </div>
+        `;
+            } else {
+                container.innerHTML = `
+            <div class="legend-item">
+                <div class="legend-counter" style="background:var(--voltage-purple);color:white;display:flex;align-items:center;justify-content:center;">#</div>
+                <span>Current Value</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-counter" style="background:rgba(163, 113, 247, 0.1);color:var(--voltage-purple);border:1px solid var(--voltage-purple);display:flex;align-items:center;justify-content:center;">#</div>
+                <span>Target Value</span>
+            </div>
+        `;
+            }
+        }
+
+        function renderMachines() {
+            const container = document.getElementById('machinesContainer');
+            container.innerHTML = '';
+
+            machines.forEach((machine, mIdx) => {
+                const isSolved = currentMode === 'lights' ? machine.solved1 : machine.solved2;
+                const solution = currentMode === 'lights' ? machine.solution1 : machine.solution2;
+                const minPresses = currentMode === 'lights' ? machine.minPresses1 : machine.minPresses2;
+                const pressedMap = currentMode === 'lights' ? null : machine.pressedButtons2;
+                const pressedSet = currentMode === 'lights' ? machine.pressedButtons1 : null;
+
+                const machineDiv = document.createElement('div');
+                machineDiv.className = `machine ${isSolved ? 'solved' : ''} ${mIdx === currentMachineIndex && solving ? 'solving' : ''}`;
+                if (mIdx === currentMachineIndex) machineDiv.classList.add('active');
+
+                // Header
+                const header = document.createElement('div');
+                header.className = 'machine-header';
+                header.innerHTML = `
+            <span class="machine-id">Machine ${mIdx + 1}</span>
+            <span class="machine-status ${isSolved ? 'solved' : ''}">${isSolved ? '✓ SOLVED' : 'PENDING'}</span>
+        `;
+                machineDiv.appendChild(header);
+
+                const displayContainer = document.createElement('div');
+                displayContainer.className = 'lights-container';
+
+                if (currentMode === 'lights') {
+                    // LIGHTS MODE
+                    const targetLabel = document.createElement('div');
+                    targetLabel.className = 'lights-label';
+                    targetLabel.textContent = 'Target Configuration';
+                    displayContainer.appendChild(targetLabel);
+
+                    const targetRow = document.createElement('div');
+                    targetRow.className = 'lights-row';
+                    machine.targetState.forEach((on, i) => {
+                        const light = document.createElement('div');
+                        light.className = `light ${on ? 'on' : 'off'}`;
+                        light.textContent = i;
+                        targetRow.appendChild(light);
+                    });
+                    displayContainer.appendChild(targetRow);
+
+                    const currentLabel = document.createElement('div');
+                    currentLabel.className = 'lights-label';
+                    currentLabel.textContent = 'Current State';
+                    currentLabel.style.marginTop = '12px';
+                    displayContainer.appendChild(currentLabel);
+
+                    const currentRow = document.createElement('div');
+                    currentRow.className = 'lights-row';
+                    machine.currentLightState.forEach((on, i) => {
+                        const light = document.createElement('div');
+                        light.className = `light ${on ? 'on' : 'off'}`;
+                        if (on === machine.targetState[i]) {
+                            light.style.borderColor = '#3fb950';
+                        } else {
+                            light.style.borderColor = '#f85149';
+                        }
+                        light.textContent = i;
+                        currentRow.appendChild(light);
+                    });
+                    displayContainer.appendChild(currentRow);
+
+                } else {
+                    // JOLTAGE MODE
+                    const targetLabel = document.createElement('div');
+                    targetLabel.className = 'lights-label';
+                    targetLabel.textContent = 'Targets & Current Values';
+                    displayContainer.appendChild(targetLabel);
+
+                    // Combined row for joltage: Target over Current
+                    // Use grid or flex
+                    const row = document.createElement('div');
+                    row.className = 'lights-row';
+
+                    if (machine.targetCounts) {
+                        machine.targetCounts.forEach((target, i) => {
+                            const group = document.createElement('div');
+                            group.style.display = 'flex';
+                            group.style.flexDirection = 'column';
+                            group.style.alignItems = 'center';
+                            group.style.gap = '4px';
+                            group.style.margin = '0 4px';
+
+                            const tVal = document.createElement('div');
+                            tVal.className = 'counter target';
+                            tVal.textContent = target;
+                            tVal.title = `Target ${i}`;
+
+                            const cVal = document.createElement('div');
+                            const current = machine.currentCounts[i];
+                            cVal.className = `counter current ${current === target ? 'match' : ''}`;
+                            cVal.textContent = current;
+                            cVal.title = `Current ${i}`;
+                            if (current > target) cVal.style.color = '#f85149'; // Warning if exceeded
+
+                            group.appendChild(tVal);
+                            group.appendChild(cVal);
+                            row.appendChild(group);
+                        });
+                    } else {
+                        row.textContent = "(No joltage targets)";
+                        row.style.color = "var(--text-dim)";
+                        row.style.fontSize = "0.8rem";
+                    }
+                    displayContainer.appendChild(row);
+                }
+
+                machineDiv.appendChild(displayContainer);
+
+                // Buttons
+                const buttonsContainer = document.createElement('div');
+                buttonsContainer.className = 'buttons-container';
+                machine.buttons.forEach((indices, bIdx) => {
+                    const btn = document.createElement('button');
+                    const pressed = currentMode === 'lights'
+                        ? pressedSet.has(bIdx)
+                        : (pressedMap.has(bIdx) && pressedMap.get(bIdx) > 0);
+
+                    btn.className = `machine-btn ${pressed ? 'pressed' : ''}`;
+
+                    // Check solution for highlight logic
+                    let isSolution = false;
+                    if (solution) {
+                        if (currentMode === 'lights') {
+                            if (solution & (1 << bIdx)) isSolution = true;
+                        } else {
+                            if (solution.has(bIdx)) isSolution = true;
+                        }
+                    }
+
+                    if (isSolution) {
+                        btn.classList.add('solution');
+                    }
+
+                    btn.textContent = formatButtonLabel(indices);
+
+                    // In Part 2, show press count if > 0
+                    if (currentMode === 'joltage' && pressed) {
+                        const countSpan = document.createElement('span');
+                        countSpan.className = 'press-count';
+                        countSpan.textContent = pressedMap.get(bIdx);
+                        btn.appendChild(countSpan);
+                    }
+
+                    btn.onclick = () => toggleButton(mIdx, bIdx);
+                    buttonsContainer.appendChild(btn);
+                });
+                machineDiv.appendChild(buttonsContainer);
+
+                // Solution text
+                if (isSolved && minPresses > 0) {
+                    const solutionDiv = document.createElement('div');
+                    solutionDiv.className = 'solution-display';
+                    let currentPresses = 0;
+                    if (currentMode === 'lights') currentPresses = pressedSet.size;
+                    else {
+                        for (let v of pressedMap.values()) currentPresses += v;
+                    }
+                    solutionDiv.textContent = `✓ Solved with ${currentPresses} button press${currentPresses !== 1 ? 'es' : ''} (minimum: ${minPresses})`;
+                    machineDiv.appendChild(solutionDiv);
+                }
+
+                container.appendChild(machineDiv);
+            });
+        }
+
+        function updateStats() {
+            document.getElementById('totalMachines').textContent = machines.length;
+            let solved = 0;
+            let total = 0;
+
+            machines.forEach(m => {
+                if (currentMode === 'lights') {
+                    if (m.solved1) solved++;
+                    total += m.pressedButtons1.size;
+                } else {
+                    if (m.solved2) solved++;
+                    for (let v of m.pressedButtons2.values()) total += v;
+                }
+            });
+
+            document.getElementById('solvedCount').textContent = solved;
+            document.getElementById('totalPresses').textContent = total;
+            document.getElementById('currentMachine').textContent = machines.length > 0 ? currentMachineIndex + 1 : '-';
+        }
+
+        function loadMachines(input) {
+            machines = parseInput(input);
+
+            // Pre-calculate solutions
+            machines.forEach(machine => {
+                // Part 1
+                const res1 = findMinPressesPart1(machine);
+                machine.minPresses1 = res1.minPresses;
+                machine.solution1 = res1.bestMask;
+
+                // Part 2
+                const res2 = solvePart2(machine);
+                machine.minPresses2 = res2.minPresses;
+                machine.solution2 = res2.solution;
+            });
+
+            currentMachineIndex = 0;
+            totalPresses = 0;
+            solving = false;
+
+            renderMachines();
+            updateStats();
+
+            localStorage.setItem('day10Input', input);
+        }
+
+        function reset() {
+            if (animationTimeout) {
+                clearTimeout(animationTimeout);
+                animationTimeout = null;
+            }
+            solving = false;
+            document.getElementById('solveBtn').textContent = '⚡ Solve All';
+
+            machines.forEach(machine => {
+                if (currentMode === 'lights') {
+                    machine.currentLightState = new Array(machine.targetState.length).fill(false);
+                    machine.pressedButtons1 = new Set();
+                    machine.solved1 = false;
+                } else {
+                    machine.currentCounts = machine.targetCounts ? new Array(machine.targetCounts.length).fill(0) : [];
+                    machine.pressedButtons2 = new Map();
+                    machine.solved2 = false;
+                }
+            });
+
+            currentMachineIndex = 0;
+            renderMachines();
+            updateStats();
+        }
+
+        function toggleMode() {
+            if (currentMode === 'lights') {
+                currentMode = 'joltage';
+                document.getElementById('modeBtn').textContent = '⚡ Mode: Joltage (Part 2)';
+                document.getElementById('modeBtn').classList.add('active-mode');
+            } else {
+                currentMode = 'lights';
+                document.getElementById('modeBtn').textContent = '💡 Mode: Lights (Part 1)';
+                document.getElementById('modeBtn').classList.remove('active-mode');
+            }
+            reset(); // Reset state when switching modes (simpler than syncing)
+            updateLegend();
+            renderMachines();
+            updateStats();
+        }
+
+        function getSpeed() {
+            return 11 - document.getElementById('speedSlider').value;
+        }
+
+        async function solveMachine(machineIdx) {
+            const machine = machines[machineIdx];
+            currentMachineIndex = machineIdx;
+            renderMachines();
+            updateStats();
+
+            if (currentMode === 'lights') {
+                if (!machine.solution1) return;
+                const bestMask = machine.solution1;
+                for (let b = 0; b < machine.buttons.length; b++) {
+                    if (bestMask & (1 << b)) {
+                        await new Promise(r => { animationTimeout = setTimeout(r, getSpeed() * 100); });
+                        if (!solving) return;
+                        toggleButton(machineIdx, b);
+                    }
+                }
+            } else {
+                if (!machine.solution2) return;
+                // Solution is Map<btnIdx, count>
+                for (const [bIdx, count] of machine.solution2) {
+                    for (let i = 0; i < count; i++) {
+                        await new Promise(r => { animationTimeout = setTimeout(r, getSpeed() * 80); });
+                        if (!solving) return;
+                        toggleButton(machineIdx, bIdx);
+                    }
+                }
+            }
+        }
+
+        async function solveAll() {
+            if (solving) {
+                solving = false;
+                document.getElementById('solveBtn').textContent = '⚡ Solve All';
+                return;
+            }
+
+            solving = true;
+            document.getElementById('solveBtn').textContent = '⏹ Stop';
+
+            reset();
+            solving = true; // Reset sets it to false
+
+            for (let i = 0; i < machines.length; i++) {
+                if (!solving) break;
+
+                // Skip solved?
+                const isSolved = currentMode === 'lights' ? machines[i].solved1 : machines[i].solved2;
+                if (!isSolved) {
+                    await solveMachine(i);
+                    await new Promise(r => { animationTimeout = setTimeout(r, getSpeed() * 100); });
+                }
+            }
+
+            solving = false;
+            document.getElementById('solveBtn').textContent = '⚡ Solve All';
+        }
+
+        function step() {
+            // Find next unfished machine Step logic...
+            if (machines.length === 0) return;
+
+            // Find first unsolved machine from current index
+            let target = -1;
+            // Check current first
+            const isCurrentSolved = currentMode === 'lights' ? machines[currentMachineIndex].solved1 : machines[currentMachineIndex].solved2;
+            if (!isCurrentSolved) target = currentMachineIndex;
+            else {
+                // Search forward
+                for (let i = 0; i < machines.length; i++) {
+                    const idx = (currentMachineIndex + i + 1) % machines.length;
+                    const solved = currentMode === 'lights' ? machines[idx].solved1 : machines[idx].solved2;
+                    if (!solved) { target = idx; break; }
+                }
+            }
+
+            if (target === -1) return; // All solved
+            currentMachineIndex = target;
+
+            const machine = machines[target];
+
+            // Find next move
+            if (currentMode === 'lights') {
+                const mask = machine.solution1;
+                if (!mask) return;
+                for (let b = 0; b < machine.buttons.length; b++) {
+                    if ((mask & (1 << b)) && !machine.pressedButtons1.has(b)) {
+                        toggleButton(target, b);
+                        return;
+                    }
+                }
+            } else {
+                const sol = machine.solution2;
+                if (!sol) return;
+                for (const [bIdx, targetCount] of sol) {
+                    const currentCount = machine.pressedButtons2.get(bIdx) || 0;
+                    if (currentCount < targetCount) {
+                        toggleButton(target, bIdx);
+                        return;
+                    }
+                }
+            }
+        }
+
+        function setMode(mode) {
+            if (currentMode === mode) return;
+            currentMode = mode;
+
+            // Update Buttons
+            const p1Btn = document.getElementById('part1Btn');
+            const p2Btn = document.getElementById('part2Btn');
+
+            if (mode === 'lights') {
+                p1Btn.classList.add('active-mode');
+                p2Btn.classList.remove('active-mode');
+            } else {
+                p1Btn.classList.remove('active-mode');
+                p2Btn.classList.add('active-mode');
+            }
+
+            reset();
+            updateLegend();
+            renderMachines();
+            updateStats();
+        }
+
+        // Event Listeners
+        document.getElementById('loadInputBtn').onclick = () => { document.getElementById('inputModal').classList.add('show'); };
+        document.getElementById('cancelBtn').onclick = () => { document.getElementById('inputModal').classList.remove('show'); };
+        document.getElementById('useExampleBtn').onclick = () => { document.getElementById('inputText').value = EXAMPLE_INPUT; };
+        document.getElementById('loadBtn').onclick = () => {
+            const val = document.getElementById('inputText').value;
+            if (val.trim()) {
+                loadMachines(val);
+                document.getElementById('inputModal').classList.remove('show');
+            }
+        };
+        document.getElementById('resetBtn').onclick = reset;
+        document.getElementById('part1Btn').onclick = () => setMode('lights');
+        document.getElementById('part2Btn').onclick = () => setMode('joltage');
+        document.getElementById('solveBtn').onclick = solveAll;
+        document.getElementById('stepBtn').onclick = step;
+
+        // Init
+        const saved = localStorage.getItem('day10Input');
+        if (saved) loadMachines(saved);
+        else loadMachines(EXAMPLE_INPUT);
+
+        updateLegend();
+    </script>
+</body>
+
+</html>
