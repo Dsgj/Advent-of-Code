@@ -9,6 +9,30 @@
 </head>
 
 <body>
+    <a href="../index.html" class="home-link">← Calendar</a>
+    <style>
+        .home-link {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1000;
+            background: #2d3748;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            font-family: sans-serif;
+            border-left: 4px solid #48bb78;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+        }
+
+        .home-link:hover {
+            transform: translateX(2px);
+            background: #4a5568;
+        }
+    </style>
     <h1>CAFETERIA INVENTORY SYSTEM</h1>
     <p class="subtitle">Validating Ingredients & Managing Spoilage</p>
 

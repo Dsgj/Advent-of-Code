@@ -8,11 +8,37 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
-    <div class="crt-screen">
-        <div class="header">
-            <pre
-                style="color: var(--crt-green); font-size: 9px; line-height: 1.1; text-shadow: 0 0 10px var(--crt-glow); text-align: center;">
+
+<a href="../index.html" class="home-link">[ ← RETURN ]</a>
+<style>
+    .home-link {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1000;
+        color: var(--crt-green);
+        background: rgba(0, 20, 0, 0.9);
+        padding: 8px 12px;
+        text-decoration: none;
+        font-family: 'Courier New', monospace;
+        border: 1px solid var(--crt-green);
+        text-shadow: 0 0 5px var(--crt-dim);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .home-link:hover {
+        background: var(--crt-green);
+        color: #000;
+        box-shadow: 0 0 15px var(--crt-green);
+    }
+</style>
+
+<div class="crt-screen">
+    <div class="header">
+        <pre
+            style="color: var(--crt-green); font-size: 9px; line-height: 1.1; text-shadow: 0 0 10px var(--crt-glow); text-align: center;">
 ╔════════════════════════════════════════════════════════════════════╗
 ║                                                                    ║
 ║  ██████╗ ██╗███████╗████████╗    ███████╗██╗  ██╗ ██████╗ ██████╗  ║
@@ -23,541 +49,542 @@
 ║  ╚═════╝ ╚═╝╚═╝        ╚═╝       ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝      ║
 ╚══════════════════════ DATABASE SCANNER v2.0 ═══════════════════════╝
 </pre>
-        </div>
-
-        <div class="controls">
-            <button class="btn active" data-part="1">Part 1</button>
-            <button class="btn" data-part="2">Part 2</button>
-            <span style="width: 20px;"></span>
-            <button class="btn" id="btnRun">▶ RUN</button>
-            <button class="btn" id="btnStep">STEP</button>
-            <button class="btn" id="btnReset">RESET</button>
-            <span style="width: 20px;"></span>
-            <button class="btn" id="btnInput">⚙ INPUT</button>
-            <span class="input-indicator" id="inputIndicator">[EXAMPLE]</span>
-        </div>
-
-        <div class="main-content">
-            <div class="panel viz-panel">
-                <div class="ascii-frame ascii-frame-top"><span class="fill"></span><span class="title">PATTERN
-                        ANALYSIS</span><span class="fill"></span></div>
-                <div class="panel-content" id="visualizer">
-                    <div style="text-align: center; padding: 40px; color: var(--crt-dim);">
-                        Press [RUN] to start analysis
-                    </div>
-                </div>
-                <div class="ascii-frame ascii-frame-bottom"><span class="fill"></span><span class="fill"></span></div>
-            </div>
-
-            <div class="panel stats-panel">
-                <div class="ascii-frame ascii-frame-top"><span class="fill"></span><span
-                        class="title">STATISTICS</span><span class="fill"></span></div>
-                <div class="panel-content">
-                    <div class="ascii-box ascii-box-top"><span class="fill"></span><span class="title">TOTAL</span><span
-                            class="fill"></span></div>
-                    <div class="total-box">
-                        <div class="total-value" id="totalSum">0</div>
-                        <div class="total-addition" id="totalAddition">+0</div>
-                    </div>
-                    <div class="ascii-box ascii-box-bottom"><span class="fill"></span></div>
-
-                    <div class="stat-row">
-                        <span class="label">├ Range:</span>
-                        <span class="value" id="currentRange">-</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="label">├ Invalid:</span>
-                        <span class="value" id="invalidCount">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="label">└ Pattern:</span>
-                        <span class="value" id="currentPattern">-</span>
-                    </div>
-
-                    <div class="speed-row">
-                        <span>Speed:</span>
-                        <input type="range" id="speedSlider" min="1" max="100" value="70">
-                    </div>
-                </div>
-                <div class="ascii-frame ascii-frame-bottom"><span class="fill"></span></div>
-            </div>
-        </div>
     </div>
 
-    <!-- Input Modal -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal">
-            <div class="modal-header">╔══ CUSTOM INPUT ══╗</div>
-            <div class="modal-body">
-                <label>Paste your puzzle input below (format: start-end,start-end,...)</label>
-                <textarea id="customInput" placeholder="11-22,95-115,998-1012,..."></textarea>
-            </div>
-            <div class="modal-footer">
-                <button class="btn" id="btnUseInput">USE INPUT</button>
-                <button class="btn" id="btnUseExample">USE EXAMPLE</button>
-                <button class="btn" id="btnCloseModal">CLOSE</button>
-            </div>
-        </div>
+    <div class="controls">
+
+        <button class="btn active" data-part="1">Part 1</button>
+        <button class="btn" data-part="2">Part 2</button>
+        <span style="width: 20px;"></span>
+        <button class="btn" id="btnRun">▶ RUN</button>
+        <button class="btn" id="btnStep">STEP</button>
+        <button class="btn" id="btnReset">RESET</button>
+        <span style="width: 20px;"></span>
+        <button class="btn" id="btnInput">⚙ INPUT</button>
+        <span class="input-indicator" id="inputIndicator">[EXAMPLE]</span>
     </div>
 
-    <script>
-        const EXAMPLE_INPUT = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
-        const STORAGE_KEY = 'day2_custom_input';
+    <div class="main-content">
+        <div class="panel viz-panel">
+            <div class="ascii-frame ascii-frame-top"><span class="fill"></span><span class="title">PATTERN
+                    ANALYSIS</span><span class="fill"></span></div>
+            <div class="panel-content" id="visualizer">
+                <div style="text-align: center; padding: 40px; color: var(--crt-dim);">
+                    Press [RUN] to start analysis
+                </div>
+            </div>
+            <div class="ascii-frame ascii-frame-bottom"><span class="fill"></span><span class="fill"></span></div>
+        </div>
 
-        let currentInput = localStorage.getItem(STORAGE_KEY) || EXAMPLE_INPUT;
-        let usingCustom = localStorage.getItem(STORAGE_KEY) !== null;
+        <div class="panel stats-panel">
+            <div class="ascii-frame ascii-frame-top"><span class="fill"></span><span
+                    class="title">STATISTICS</span><span class="fill"></span></div>
+            <div class="panel-content">
+                <div class="ascii-box ascii-box-top"><span class="fill"></span><span class="title">TOTAL</span><span
+                        class="fill"></span></div>
+                <div class="total-box">
+                    <div class="total-value" id="totalSum">0</div>
+                    <div class="total-addition" id="totalAddition">+0</div>
+                </div>
+                <div class="ascii-box ascii-box-bottom"><span class="fill"></span></div>
 
-        let currentPart = 1;
-        let ranges = [];
-        let isRunning = false;
-        let animationTimeout = null;
-        let queueIndex = 0;
-        let animationQueue = [];
-        let runningTotal = 0n;
+                <div class="stat-row">
+                    <span class="label">├ Range:</span>
+                    <span class="value" id="currentRange">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="label">├ Invalid:</span>
+                    <span class="value" id="invalidCount">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="label">└ Pattern:</span>
+                    <span class="value" id="currentPattern">-</span>
+                </div>
 
-        const visualizer = document.getElementById('visualizer');
-        const currentRangeEl = document.getElementById('currentRange');
-        const invalidCountEl = document.getElementById('invalidCount');
-        const totalSumEl = document.getElementById('totalSum');
-        const totalAdditionEl = document.getElementById('totalAddition');
-        const currentPatternEl = document.getElementById('currentPattern');
-        const btnRun = document.getElementById('btnRun');
-        const btnStep = document.getElementById('btnStep');
-        const btnReset = document.getElementById('btnReset');
-        const speedSlider = document.getElementById('speedSlider');
+                <div class="speed-row">
+                    <span>Speed:</span>
+                    <input type="range" id="speedSlider" min="1" max="100" value="70">
+                </div>
+            </div>
+            <div class="ascii-frame ascii-frame-bottom"><span class="fill"></span></div>
+        </div>
+    </div>
+</div>
 
-        // Modal elements
-        const inputModal = document.getElementById('inputModal');
-        const customInputEl = document.getElementById('customInput');
-        const inputIndicator = document.getElementById('inputIndicator');
-        const btnInput = document.getElementById('btnInput');
-        const btnUseInput = document.getElementById('btnUseInput');
-        const btnUseExample = document.getElementById('btnUseExample');
-        const btnCloseModal = document.getElementById('btnCloseModal');
+<!-- Input Modal -->
+<div class="modal-overlay" id="inputModal">
+    <div class="modal">
+        <div class="modal-header">╔══ CUSTOM INPUT ══╗</div>
+        <div class="modal-body">
+            <label>Paste your puzzle input below (format: start-end,start-end,...)</label>
+            <textarea id="customInput" placeholder="11-22,95-115,998-1012,..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" id="btnUseInput">USE INPUT</button>
+            <button class="btn" id="btnUseExample">USE EXAMPLE</button>
+            <button class="btn" id="btnCloseModal">CLOSE</button>
+        </div>
+    </div>
+</div>
 
-        function updateInputIndicator() {
-            if (usingCustom) {
-                inputIndicator.textContent = '[CUSTOM]';
-                inputIndicator.classList.add('custom');
-            } else {
-                inputIndicator.textContent = '[EXAMPLE]';
-                inputIndicator.classList.remove('custom');
-            }
+<script>
+    const EXAMPLE_INPUT = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
+    const STORAGE_KEY = 'day2_custom_input';
+
+    let currentInput = localStorage.getItem(STORAGE_KEY) || EXAMPLE_INPUT;
+    let usingCustom = localStorage.getItem(STORAGE_KEY) !== null;
+
+    let currentPart = 1;
+    let ranges = [];
+    let isRunning = false;
+    let animationTimeout = null;
+    let queueIndex = 0;
+    let animationQueue = [];
+    let runningTotal = 0n;
+
+    const visualizer = document.getElementById('visualizer');
+    const currentRangeEl = document.getElementById('currentRange');
+    const invalidCountEl = document.getElementById('invalidCount');
+    const totalSumEl = document.getElementById('totalSum');
+    const totalAdditionEl = document.getElementById('totalAddition');
+    const currentPatternEl = document.getElementById('currentPattern');
+    const btnRun = document.getElementById('btnRun');
+    const btnStep = document.getElementById('btnStep');
+    const btnReset = document.getElementById('btnReset');
+    const speedSlider = document.getElementById('speedSlider');
+
+    // Modal elements
+    const inputModal = document.getElementById('inputModal');
+    const customInputEl = document.getElementById('customInput');
+    const inputIndicator = document.getElementById('inputIndicator');
+    const btnInput = document.getElementById('btnInput');
+    const btnUseInput = document.getElementById('btnUseInput');
+    const btnUseExample = document.getElementById('btnUseExample');
+    const btnCloseModal = document.getElementById('btnCloseModal');
+
+    function updateInputIndicator() {
+        if (usingCustom) {
+            inputIndicator.textContent = '[CUSTOM]';
+            inputIndicator.classList.add('custom');
+        } else {
+            inputIndicator.textContent = '[EXAMPLE]';
+            inputIndicator.classList.remove('custom');
         }
+    }
 
-        function openModal() {
-            customInputEl.value = usingCustom ? currentInput : '';
-            inputModal.classList.add('show');
-        }
+    function openModal() {
+        customInputEl.value = usingCustom ? currentInput : '';
+        inputModal.classList.add('show');
+    }
 
-        function closeModal() {
-            inputModal.classList.remove('show');
-        }
+    function closeModal() {
+        inputModal.classList.remove('show');
+    }
 
-        function useCustomInput() {
-            const input = customInputEl.value.trim();
-            if (input) {
-                currentInput = input;
-                usingCustom = true;
-                localStorage.setItem(STORAGE_KEY, input);
-                updateInputIndicator();
-                closeModal();
-                init();
-            }
-        }
-
-        function useExampleInput() {
-            currentInput = EXAMPLE_INPUT;
-            usingCustom = false;
-            localStorage.removeItem(STORAGE_KEY);
+    function useCustomInput() {
+        const input = customInputEl.value.trim();
+        if (input) {
+            currentInput = input;
+            usingCustom = true;
+            localStorage.setItem(STORAGE_KEY, input);
             updateInputIndicator();
             closeModal();
             init();
         }
+    }
 
-        btnInput.addEventListener('click', openModal);
-        btnCloseModal.addEventListener('click', closeModal);
-        btnUseInput.addEventListener('click', useCustomInput);
-        btnUseExample.addEventListener('click', useExampleInput);
-        inputModal.addEventListener('click', (e) => {
-            if (e.target === inputModal) closeModal();
-        });
-
+    function useExampleInput() {
+        currentInput = EXAMPLE_INPUT;
+        usingCustom = false;
+        localStorage.removeItem(STORAGE_KEY);
         updateInputIndicator();
+        closeModal();
+        init();
+    }
 
-        function sumAPInRange(minBase, maxBase, multiplier, rangeStart, rangeEnd) {
-            const minValidBase = (rangeStart + multiplier - 1n) / multiplier;
-            const maxValidBase = rangeEnd / multiplier;
-            const start = minValidBase > minBase ? minValidBase : minBase;
-            const end = maxValidBase < maxBase ? maxValidBase : maxBase;
-            if (start > end) return { sum: 0n, count: 0n };
-            const count = end - start + 1n;
-            const sumOfBases = count * (start + end) / 2n;
-            return { sum: sumOfBases * multiplier, count: count };
+    btnInput.addEventListener('click', openModal);
+    btnCloseModal.addEventListener('click', closeModal);
+    btnUseInput.addEventListener('click', useCustomInput);
+    btnUseExample.addEventListener('click', useExampleInput);
+    inputModal.addEventListener('click', (e) => {
+        if (e.target === inputModal) closeModal();
+    });
+
+    updateInputIndicator();
+
+    function sumAPInRange(minBase, maxBase, multiplier, rangeStart, rangeEnd) {
+        const minValidBase = (rangeStart + multiplier - 1n) / multiplier;
+        const maxValidBase = rangeEnd / multiplier;
+        const start = minValidBase > minBase ? minValidBase : minBase;
+        const end = maxValidBase < maxBase ? maxValidBase : maxBase;
+        if (start > end) return { sum: 0n, count: 0n };
+        const count = end - start + 1n;
+        const sumOfBases = count * (start + end) / 2n;
+        return { sum: sumOfBases * multiplier, count: count };
+    }
+
+    const divisorsCache = new Map();
+    function getProperDivisors(n) {
+        if (divisorsCache.has(n)) return divisorsCache.get(n);
+        const divs = [1];
+        for (let i = 2; i <= n / 2; i++) {
+            if (n % i === 0) divs.push(i);
         }
+        divisorsCache.set(n, divs);
+        return divs;
+    }
 
-        const divisorsCache = new Map();
-        function getProperDivisors(n) {
-            if (divisorsCache.has(n)) return divisorsCache.get(n);
-            const divs = [1];
-            for (let i = 2; i <= n / 2; i++) {
-                if (n % i === 0) divs.push(i);
+    function parseRanges(input) {
+        return input.split(',').filter(p => p.trim()).map(p => {
+            const [start, end] = p.trim().split('-');
+            return { start: BigInt(start), end: BigInt(end) };
+        });
+    }
+
+    function generateExamples(pLen, len, rangeStart, rangeEnd, maxExamples = 3) {
+        const examples = [];
+        const reps = len / pLen;
+        const minBase = pLen === 1 ? 1n : 10n ** BigInt(pLen - 1);
+        const maxBase = 10n ** BigInt(pLen) - 1n;
+        let multiplier = 0n;
+        for (let r = 0; r < reps; r++) multiplier += 10n ** BigInt(r * pLen);
+        for (let base = minBase; base <= maxBase && examples.length < maxExamples; base++) {
+            const num = base * multiplier;
+            if (num >= rangeStart && num <= rangeEnd) {
+                examples.push({ num: num.toString(), pLen, reps });
             }
-            divisorsCache.set(n, divs);
-            return divs;
         }
+        return examples;
+    }
 
-        function parseRanges(input) {
-            return input.split(',').filter(p => p.trim()).map(p => {
-                const [start, end] = p.trim().split('-');
-                return { start: BigInt(start), end: BigInt(end) };
-            });
+    function formatNumberWithPattern(numStr, pLen) {
+        // Highlight the repeating pattern
+        const parts = [];
+        for (let i = 0; i < numStr.length; i += pLen) {
+            parts.push(numStr.slice(i, i + pLen));
         }
+        const pattern = parts[0];
+        return parts.map((p, idx) =>
+            idx === 0
+                ? `<span class="pattern-part">${p}</span>`
+                : p
+        ).join('');
+    }
 
-        function generateExamples(pLen, len, rangeStart, rangeEnd, maxExamples = 3) {
-            const examples = [];
-            const reps = len / pLen;
-            const minBase = pLen === 1 ? 1n : 10n ** BigInt(pLen - 1);
-            const maxBase = 10n ** BigInt(pLen) - 1n;
-            let multiplier = 0n;
-            for (let r = 0; r < reps; r++) multiplier += 10n ** BigInt(r * pLen);
-            for (let base = minBase; base <= maxBase && examples.length < maxExamples; base++) {
-                const num = base * multiplier;
-                if (num >= rangeStart && num <= rangeEnd) {
-                    examples.push({ num: num.toString(), pLen, reps });
-                }
-            }
-            return examples;
-        }
+    function buildAnimationQueue(ranges, part) {
+        const queue = [];
+        let totalSumGlob = 0n;
+        let totalInvalidGlob = 0n;
 
-        function formatNumberWithPattern(numStr, pLen) {
-            // Highlight the repeating pattern
-            const parts = [];
-            for (let i = 0; i < numStr.length; i += pLen) {
-                parts.push(numStr.slice(i, i + pLen));
-            }
-            const pattern = parts[0];
-            return parts.map((p, idx) =>
-                idx === 0
-                    ? `<span class="pattern-part">${p}</span>`
-                    : p
-            ).join('');
-        }
+        ranges.forEach((range, rIdx) => {
+            const startLen = range.start.toString().length;
+            const endLen = range.end.toString().length;
 
-        function buildAnimationQueue(ranges, part) {
-            const queue = [];
-            let totalSumGlob = 0n;
-            let totalInvalidGlob = 0n;
+            queue.push({ type: 'range-start', range, rIdx, totalRanges: ranges.length });
 
-            ranges.forEach((range, rIdx) => {
-                const startLen = range.start.toString().length;
-                const endLen = range.end.toString().length;
+            for (let len = startLen; len <= endLen; len++) {
+                if (part === 1 && len % 2 !== 0) continue;
+                if (part === 2 && len < 2) continue;
 
-                queue.push({ type: 'range-start', range, rIdx, totalRanges: ranges.length });
-
-                for (let len = startLen; len <= endLen; len++) {
-                    if (part === 1 && len % 2 !== 0) continue;
-                    if (part === 2 && len < 2) continue;
-
-                    const validPatternLengths = [];
-                    if (part === 1) {
-                        validPatternLengths.push(len / 2);
-                    } else {
-                        for (let d = 1; d <= len / 2; d++) {
-                            if (len % d === 0) validPatternLengths.push(d);
-                        }
-                        validPatternLengths.sort((a, b) => a - b);
+                const validPatternLengths = [];
+                if (part === 1) {
+                    validPatternLengths.push(len / 2);
+                } else {
+                    for (let d = 1; d <= len / 2; d++) {
+                        if (len % d === 0) validPatternLengths.push(d);
                     }
+                    validPatternLengths.sort((a, b) => a - b);
+                }
 
-                    if (validPatternLengths.length === 0) continue;
-                    queue.push({ type: 'len-start', len, validPatternLengths });
+                if (validPatternLengths.length === 0) continue;
+                queue.push({ type: 'len-start', len, validPatternLengths });
 
-                    const uniqueSums = new Map();
-                    const uniqueCounts = new Map();
+                const uniqueSums = new Map();
+                const uniqueCounts = new Map();
 
-                    for (const pLen of validPatternLengths) {
-                        const minBase = pLen === 1 ? 1n : 10n ** BigInt(pLen - 1);
-                        const maxBase = 10n ** BigInt(pLen) - 1n;
-                        const reps = len / pLen;
-                        let multiplier = 0n;
-                        for (let r = 0; r < reps; r++) multiplier += 10n ** BigInt(r * pLen);
+                for (const pLen of validPatternLengths) {
+                    const minBase = pLen === 1 ? 1n : 10n ** BigInt(pLen - 1);
+                    const maxBase = 10n ** BigInt(pLen) - 1n;
+                    const reps = len / pLen;
+                    let multiplier = 0n;
+                    for (let r = 0; r < reps; r++) multiplier += 10n ** BigInt(r * pLen);
 
-                        const res = sumAPInRange(minBase, maxBase, multiplier, range.start, range.end);
-                        let currentSum = res.sum;
-                        let currentCount = res.count;
-                        const rawSum = currentSum;
-                        const rawCount = currentCount;
+                    const res = sumAPInRange(minBase, maxBase, multiplier, range.start, range.end);
+                    let currentSum = res.sum;
+                    let currentCount = res.count;
+                    const rawSum = currentSum;
+                    const rawCount = currentCount;
 
-                        const subtractions = [];
-                        if (part === 2) {
-                            const properDivs = getProperDivisors(pLen);
-                            for (const div of properDivs) {
-                                if (uniqueSums.has(div)) {
-                                    const subSum = uniqueSums.get(div);
-                                    const subCount = uniqueCounts.get(div);
-                                    currentSum -= subSum;
-                                    currentCount -= subCount;
-                                    subtractions.push({ div, subSum, subCount });
-                                }
+                    const subtractions = [];
+                    if (part === 2) {
+                        const properDivs = getProperDivisors(pLen);
+                        for (const div of properDivs) {
+                            if (uniqueSums.has(div)) {
+                                const subSum = uniqueSums.get(div);
+                                const subCount = uniqueCounts.get(div);
+                                currentSum -= subSum;
+                                currentCount -= subCount;
+                                subtractions.push({ div, subSum, subCount });
                             }
                         }
-
-                        uniqueSums.set(pLen, currentSum);
-                        uniqueCounts.set(pLen, currentCount);
-
-                        const examples = generateExamples(pLen, len, range.start, range.end, 4);
-
-                        if (currentCount > 0n) {
-                            totalSumGlob += currentSum;
-                            totalInvalidGlob += currentCount;
-                        }
-
-                        queue.push({
-                            type: 'pattern',
-                            pLen, len, reps,
-                            rawSum, rawCount,
-                            subtractions,
-                            uniqueSum: currentSum,
-                            uniqueCount: currentCount,
-                            examples,
-                            newTotal: totalSumGlob,
-                            newInvalid: totalInvalidGlob
-                        });
                     }
+
+                    uniqueSums.set(pLen, currentSum);
+                    uniqueCounts.set(pLen, currentCount);
+
+                    const examples = generateExamples(pLen, len, range.start, range.end, 4);
+
+                    if (currentCount > 0n) {
+                        totalSumGlob += currentSum;
+                        totalInvalidGlob += currentCount;
+                    }
+
+                    queue.push({
+                        type: 'pattern',
+                        pLen, len, reps,
+                        rawSum, rawCount,
+                        subtractions,
+                        uniqueSum: currentSum,
+                        uniqueCount: currentCount,
+                        examples,
+                        newTotal: totalSumGlob,
+                        newInvalid: totalInvalidGlob
+                    });
                 }
+            }
+        });
+
+        queue.push({ type: 'complete', totalSum: totalSumGlob, totalInvalid: totalInvalidGlob });
+        return queue;
+    }
+
+    function renderWaterfallItem(item) {
+        const container = document.createElement('div');
+        container.className = 'waterfall-item';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'waterfall-header';
+        header.innerHTML = `<span>Pattern L${item.pLen} (${item.pLen}-digit × ${item.reps})</span>`;
+        container.appendChild(header);
+
+        // Number examples with pattern highlighting
+        if (item.examples.length > 0) {
+            const examplesDiv = document.createElement('div');
+            examplesDiv.className = 'waterfall-examples';
+
+            item.examples.forEach((ex, idx) => {
+                const box = document.createElement('span');
+                box.className = 'number-box' + (idx === 0 ? ' highlight' : '');
+                box.innerHTML = formatNumberWithPattern(ex.num, ex.pLen);
+                examplesDiv.appendChild(box);
             });
 
-            queue.push({ type: 'complete', totalSum: totalSumGlob, totalInvalid: totalInvalidGlob });
-            return queue;
-        }
-
-        function renderWaterfallItem(item) {
-            const container = document.createElement('div');
-            container.className = 'waterfall-item';
-
-            // Header
-            const header = document.createElement('div');
-            header.className = 'waterfall-header';
-            header.innerHTML = `<span>Pattern L${item.pLen} (${item.pLen}-digit × ${item.reps})</span>`;
-            container.appendChild(header);
-
-            // Number examples with pattern highlighting
-            if (item.examples.length > 0) {
-                const examplesDiv = document.createElement('div');
-                examplesDiv.className = 'waterfall-examples';
-
-                item.examples.forEach((ex, idx) => {
-                    const box = document.createElement('span');
-                    box.className = 'number-box' + (idx === 0 ? ' highlight' : '');
-                    box.innerHTML = formatNumberWithPattern(ex.num, ex.pLen);
-                    examplesDiv.appendChild(box);
-                });
-
-                if (item.rawCount > BigInt(item.examples.length)) {
-                    const more = document.createElement('span');
-                    more.style.cssText = 'color: var(--crt-dim); font-size: 10px; margin-left: 5px;';
-                    more.textContent = `+${(item.rawCount - BigInt(item.examples.length)).toString()} more`;
-                    examplesDiv.appendChild(more);
-                }
-
-                container.appendChild(examplesDiv);
+            if (item.rawCount > BigInt(item.examples.length)) {
+                const more = document.createElement('span');
+                more.style.cssText = 'color: var(--crt-dim); font-size: 10px; margin-left: 5px;';
+                more.textContent = `+${(item.rawCount - BigInt(item.examples.length)).toString()} more`;
+                examplesDiv.appendChild(more);
             }
 
-            // Waterfall bars
-            const maxVal = item.rawCount > 0n ? item.rawCount : 1n;
-            const scale = (n) => Math.min(100, Math.max(5, Number(n * 100n / maxVal)));
+            container.appendChild(examplesDiv);
+        }
 
-            // Raw bar
-            const rawRow = document.createElement('div');
-            rawRow.className = 'waterfall-bar-row';
-            rawRow.innerHTML = `
+        // Waterfall bars
+        const maxVal = item.rawCount > 0n ? item.rawCount : 1n;
+        const scale = (n) => Math.min(100, Math.max(5, Number(n * 100n / maxVal)));
+
+        // Raw bar
+        const rawRow = document.createElement('div');
+        rawRow.className = 'waterfall-bar-row';
+        rawRow.innerHTML = `
                 <span class="bar-label">Raw:</span>
                 <div class="bar-track">
                     <div class="bar-fill raw" style="width: ${scale(item.rawCount)}%">${item.rawCount.toString()}</div>
                 </div>
                 <span class="bar-value">${item.rawSum.toString()}</span>
             `;
-            container.appendChild(rawRow);
+        container.appendChild(rawRow);
 
-            // Subtraction bars
-            for (const sub of item.subtractions) {
-                if (sub.subCount > 0n) {
-                    const subRow = document.createElement('div');
-                    subRow.className = 'waterfall-bar-row';
-                    subRow.innerHTML = `
+        // Subtraction bars
+        for (const sub of item.subtractions) {
+            if (sub.subCount > 0n) {
+                const subRow = document.createElement('div');
+                subRow.className = 'waterfall-bar-row';
+                subRow.innerHTML = `
                         <span class="bar-label">- L${sub.div}:</span>
                         <div class="bar-track">
                             <div class="bar-fill sub" style="width: ${scale(sub.subCount)}%">${sub.subCount.toString()}</div>
                         </div>
                         <span class="bar-value" style="color: var(--crt-red)">-${sub.subSum.toString()}</span>
                     `;
-                    container.appendChild(subRow);
-                }
+                container.appendChild(subRow);
             }
+        }
 
-            // Unique result bar
-            const uniqueRow = document.createElement('div');
-            uniqueRow.className = 'waterfall-bar-row';
-            uniqueRow.innerHTML = `
+        // Unique result bar
+        const uniqueRow = document.createElement('div');
+        uniqueRow.className = 'waterfall-bar-row';
+        uniqueRow.innerHTML = `
                 <span class="bar-label">= Unique:</span>
                 <div class="bar-track">
                     <div class="bar-fill unique" style="width: ${scale(item.uniqueCount)}%">${item.uniqueCount.toString()}</div>
                 </div>
                 <span class="bar-value" style="font-weight: bold;">${item.uniqueSum.toString()}</span>
             `;
-            container.appendChild(uniqueRow);
+        container.appendChild(uniqueRow);
 
-            // Flow indicator
-            if (item.uniqueSum > 0n) {
-                const flow = document.createElement('div');
-                flow.className = 'flow-indicator';
-                flow.innerHTML = `▼ +${item.uniqueSum.toString()} added to total`;
-                container.appendChild(flow);
-            } else if (item.rawCount === 0n) {
-                const noMatch = document.createElement('div');
-                noMatch.className = 'flow-indicator';
-                noMatch.style.color = 'var(--crt-dim)';
-                noMatch.textContent = '(no matches in range)';
-                container.appendChild(noMatch);
-            }
-
-            return container;
+        // Flow indicator
+        if (item.uniqueSum > 0n) {
+            const flow = document.createElement('div');
+            flow.className = 'flow-indicator';
+            flow.innerHTML = `▼ +${item.uniqueSum.toString()} added to total`;
+            container.appendChild(flow);
+        } else if (item.rawCount === 0n) {
+            const noMatch = document.createElement('div');
+            noMatch.className = 'flow-indicator';
+            noMatch.style.color = 'var(--crt-dim)';
+            noMatch.textContent = '(no matches in range)';
+            container.appendChild(noMatch);
         }
 
-        function updateTotal(newTotal, addition) {
-            runningTotal = newTotal;
-            totalSumEl.textContent = newTotal.toString();
+        return container;
+    }
 
-            if (addition > 0n) {
-                totalAdditionEl.textContent = '+' + addition.toString();
-                totalAdditionEl.classList.add('show');
-                setTimeout(() => totalAdditionEl.classList.remove('show'), 600);
-            }
+    function updateTotal(newTotal, addition) {
+        runningTotal = newTotal;
+        totalSumEl.textContent = newTotal.toString();
+
+        if (addition > 0n) {
+            totalAdditionEl.textContent = '+' + addition.toString();
+            totalAdditionEl.classList.add('show');
+            setTimeout(() => totalAdditionEl.classList.remove('show'), 600);
+        }
+    }
+
+    function step() {
+        if (queueIndex >= animationQueue.length) {
+            isRunning = false;
+            btnRun.textContent = '▶ RUN';
+            return false;
         }
 
-        function step() {
-            if (queueIndex >= animationQueue.length) {
-                isRunning = false;
-                btnRun.textContent = '▶ RUN';
-                return false;
-            }
+        const item = animationQueue[queueIndex];
+        queueIndex++;
 
-            const item = animationQueue[queueIndex];
-            queueIndex++;
+        switch (item.type) {
+            case 'range-start':
+                currentRangeEl.textContent = `${item.rIdx + 1}/${item.totalRanges}`;
+                if (item.rIdx === 0) visualizer.innerHTML = '';
 
-            switch (item.type) {
-                case 'range-start':
-                    currentRangeEl.textContent = `${item.rIdx + 1}/${item.totalRanges}`;
-                    if (item.rIdx === 0) visualizer.innerHTML = '';
+                const rangeDiv = document.createElement('div');
+                rangeDiv.className = 'range-header';
+                rangeDiv.textContent = `RANGE: ${item.range.start} → ${item.range.end}`;
+                visualizer.appendChild(rangeDiv);
+                break;
 
-                    const rangeDiv = document.createElement('div');
-                    rangeDiv.className = 'range-header';
-                    rangeDiv.textContent = `RANGE: ${item.range.start} → ${item.range.end}`;
-                    visualizer.appendChild(rangeDiv);
-                    break;
+            case 'len-start':
+                const lengthGroup = document.createElement('div');
+                lengthGroup.className = 'length-group';
+                lengthGroup.id = `len-${item.len}`;
 
-                case 'len-start':
-                    const lengthGroup = document.createElement('div');
-                    lengthGroup.className = 'length-group';
-                    lengthGroup.id = `len-${item.len}`;
+                const lenTitle = document.createElement('div');
+                lenTitle.className = 'length-title';
+                lenTitle.textContent = `${item.len}-digit numbers (patterns: L${item.validPatternLengths.join(', L')})`;
+                lengthGroup.appendChild(lenTitle);
 
-                    const lenTitle = document.createElement('div');
-                    lenTitle.className = 'length-title';
-                    lenTitle.textContent = `${item.len}-digit numbers (patterns: L${item.validPatternLengths.join(', L')})`;
-                    lengthGroup.appendChild(lenTitle);
+                visualizer.appendChild(lengthGroup);
+                break;
 
-                    visualizer.appendChild(lengthGroup);
-                    break;
+            case 'pattern':
+                currentPatternEl.textContent = `L${item.pLen}`;
+                const waterfallItem = renderWaterfallItem(item);
 
-                case 'pattern':
-                    currentPatternEl.textContent = `L${item.pLen}`;
-                    const waterfallItem = renderWaterfallItem(item);
-
-                    const lastLenGroup = visualizer.querySelector(`#len-${item.len}`);
-                    if (lastLenGroup) {
-                        lastLenGroup.appendChild(waterfallItem);
-                    } else {
-                        visualizer.appendChild(waterfallItem);
-                    }
-
-                    visualizer.scrollTop = visualizer.scrollHeight;
-
-                    const addition = item.uniqueSum > 0n ? item.uniqueSum : 0n;
-                    updateTotal(item.newTotal, addition);
-                    invalidCountEl.textContent = item.newInvalid.toString();
-                    break;
-
-                case 'complete':
-                    currentPatternEl.textContent = 'DONE';
-                    const banner = document.createElement('div');
-                    banner.className = 'complete-banner';
-                    banner.textContent = `✓ COMPLETE - FINAL SUM: ${item.totalSum.toString()}`;
-                    visualizer.appendChild(banner);
-                    visualizer.scrollTop = visualizer.scrollHeight;
-                    isRunning = false;
-                    btnRun.textContent = '▶ RUN';
-                    break;
-            }
-            return true;
-        }
-
-        function logicalLoop() {
-            if (isRunning) {
-                if (step()) {
-                    let delay = 1000 - (speedSlider.value * 9.5);
-                    if (delay < 50) delay = 50;
-                    animationTimeout = setTimeout(logicalLoop, delay);
+                const lastLenGroup = visualizer.querySelector(`#len-${item.len}`);
+                if (lastLenGroup) {
+                    lastLenGroup.appendChild(waterfallItem);
+                } else {
+                    visualizer.appendChild(waterfallItem);
                 }
-            }
-        }
 
-        function init() {
-            ranges = parseRanges(currentInput);
-            animationQueue = buildAnimationQueue(ranges, currentPart);
-            queueIndex = 0;
-            runningTotal = 0n;
-            totalSumEl.textContent = '0';
-            totalAdditionEl.textContent = '';
-            totalAdditionEl.classList.remove('show');
-            invalidCountEl.textContent = '0';
-            currentRangeEl.textContent = '-';
-            currentPatternEl.textContent = '-';
-            visualizer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--crt-dim);">Press [RUN] to start analysis</div>';
-            clearTimeout(animationTimeout);
-        }
+                visualizer.scrollTop = visualizer.scrollHeight;
 
-        btnRun.addEventListener('click', () => {
-            if (isRunning) {
+                const addition = item.uniqueSum > 0n ? item.uniqueSum : 0n;
+                updateTotal(item.newTotal, addition);
+                invalidCountEl.textContent = item.newInvalid.toString();
+                break;
+
+            case 'complete':
+                currentPatternEl.textContent = 'DONE';
+                const banner = document.createElement('div');
+                banner.className = 'complete-banner';
+                banner.textContent = `✓ COMPLETE - FINAL SUM: ${item.totalSum.toString()}`;
+                visualizer.appendChild(banner);
+                visualizer.scrollTop = visualizer.scrollHeight;
                 isRunning = false;
-                clearTimeout(animationTimeout);
                 btnRun.textContent = '▶ RUN';
-            } else {
-                isRunning = true;
-                btnRun.textContent = '⏸ PAUSE';
-                logicalLoop();
-            }
-        });
+                break;
+        }
+        return true;
+    }
 
-        btnStep.addEventListener('click', () => { if (!isRunning) step(); });
-        btnReset.addEventListener('click', () => {
+    function logicalLoop() {
+        if (isRunning) {
+            if (step()) {
+                let delay = 1000 - (speedSlider.value * 9.5);
+                if (delay < 50) delay = 50;
+                animationTimeout = setTimeout(logicalLoop, delay);
+            }
+        }
+    }
+
+    function init() {
+        ranges = parseRanges(currentInput);
+        animationQueue = buildAnimationQueue(ranges, currentPart);
+        queueIndex = 0;
+        runningTotal = 0n;
+        totalSumEl.textContent = '0';
+        totalAdditionEl.textContent = '';
+        totalAdditionEl.classList.remove('show');
+        invalidCountEl.textContent = '0';
+        currentRangeEl.textContent = '-';
+        currentPatternEl.textContent = '-';
+        visualizer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--crt-dim);">Press [RUN] to start analysis</div>';
+        clearTimeout(animationTimeout);
+    }
+
+    btnRun.addEventListener('click', () => {
+        if (isRunning) {
+            isRunning = false;
+            clearTimeout(animationTimeout);
+            btnRun.textContent = '▶ RUN';
+        } else {
+            isRunning = true;
+            btnRun.textContent = '⏸ PAUSE';
+            logicalLoop();
+        }
+    });
+
+    btnStep.addEventListener('click', () => { if (!isRunning) step(); });
+    btnReset.addEventListener('click', () => {
+        isRunning = false;
+        clearTimeout(animationTimeout);
+        init();
+    });
+
+    document.querySelectorAll('[data-part]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-part]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPart = parseInt(btn.dataset.part);
             isRunning = false;
             clearTimeout(animationTimeout);
             init();
         });
+    });
 
-        document.querySelectorAll('[data-part]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('[data-part]').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentPart = parseInt(btn.dataset.part);
-                isRunning = false;
-                clearTimeout(animationTimeout);
-                init();
-            });
-        });
-
-        init();
-    </script>
+    init();
+</script>
 </body>
 
 </html>

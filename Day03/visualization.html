@@ -9,6 +9,32 @@
 </head>
 
 <body>
+    <a href="../index.html" class="home-link">← Calendar</a>
+    <style>
+        .home-link {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1000;
+            background: rgba(18, 20, 31, 0.9);
+            color: var(--battery-gold);
+            border: 1px solid var(--battery-gold);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px var(--battery-glow);
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+
+        .home-link:hover {
+            background: var(--battery-gold);
+            color: #12141f;
+            box-shadow: 0 0 20px var(--battery-glow);
+        }
+    </style>
     <h1>⚡ ESCALATOR POWER STATION ⚡</h1>
     <p class="subtitle">Day 3 - Emergency Battery Bank Optimizer</p>
 

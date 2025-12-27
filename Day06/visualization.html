@@ -28,6 +28,30 @@
     <!-- Hidden measure element -->
 
 
+    <a href="../index.html" class="home-link">← Calendar</a>
+    <style>
+        .home-link {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1000;
+            color: #64ffda;
+            text-decoration: none;
+            font-family: 'Share Tech Mono', monospace;
+            background: rgba(10, 25, 47, 0.9);
+            border: 1px solid #64ffda;
+            padding: 5px 10px;
+            display: inline-block;
+            box-shadow: 0 0 10px rgba(100, 255, 218, 0.2);
+            transition: all 0.3s;
+        }
+
+        .home-link:hover {
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.6);
+            transform: translateY(-2px);
+            color: #fff;
+        }
+    </style>
     <div class="main-screen">
         <header>
             <h1>TRASH COMPACTOR</h1>

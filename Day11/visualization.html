@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advent of Code - Day 11 - Reactor</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <!-- Optional for icons if needed, but we use text -->
+</head>
+
+<body>
+    <div id="app">
+        <a href="../index.html" class="home-link">← Calendar</a>
+        <style>
+            .home-link {
+                position: fixed;
+                top: 1rem;
+                left: 1rem;
+                z-index: 1000;
+                background: rgba(0, 20, 0, 0.9);
+                color: var(--reactor-cyan);
+                border: 1px solid var(--reactor-cyan);
+                padding: 0.5rem 1rem;
+                border-radius: 2px;
+                text-decoration: none;
+                font-family: "Share Tech Mono", monospace;
+                text-transform: uppercase;
+                box-shadow: 0 0 10px var(--reactor-cyan);
+                transition: all 0.3s;
+            }
+
+            .home-link:hover {
+                background: var(--reactor-cyan);
+                color: #000;
+                box-shadow: 0 0 20px var(--reactor-cyan);
+            }
+        </style>
+        <!-- Header -->
+        <header>
+            <div style="display:flex; align-items:center; gap:15px;">
+
+                <h1>Reactor Core 11</h1>
+                <div class="system-status">System Status: <span id="sys-status">ONLINE</span></div>
+            </div>
+            <div style="text-align: right; font-size: 0.8rem; color: var(--reactor-dim);">
+                <div>SECURE CONNECTION</div>
+                <div id="clock">00:00:00</div>
+            </div>
+        </header>
+
+        <!-- Main Content (Grid) -->
+        <div class="main-content">
+            <!-- Left: Visualization Chamber -->
+            <div class="viz-container">
+                <canvas id="viz-canvas"></canvas>
+                <!-- Decorative Corners -->
+                <div class="overlay-corner tl"></div>
+                <div class="overlay-corner tr"></div>
+                <div class="overlay-corner bl"></div>
+                <div class="overlay-corner br"></div>
+            </div>
+
+            <!-- Right: Diagnostics Sidebar -->
+            <div class="diagnostics-panel">
+
+                <!-- Core Stats -->
+                <div class="panel-block">
+                    <h3>Core Diagnostics</h3>
+                    <div class="stat-row">
+                        <span class="stat-label">Active Node</span>
+                        <span class="stat-value" id="stat-current">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Paths Found</span>
+                        <span class="stat-value" id="stat-paths">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Activity</span>
+                        <span class="stat-value" id="stat-activity">IDLE</span>
+                    </div>
+                </div>
+
+                <!-- Isotopes (Part 2) -->
+                <div class="panel-block">
+                    <h3>Isotope Containment</h3>
+                    <div class="isotope-display">
+                        <div class="isotope-slot" id="slot-dac">
+                            <div class="isotope-icon">☢</div>
+                            <div>DAC</div>
+                        </div>
+                        <div class="isotope-slot" id="slot-fft">
+                            <div class="isotope-icon">⚡</div>
+                            <div>FFT</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="panel-block">
+                    <h3>Schematic Legend</h3>
+                    <div class="legend-item">
+                        <div class="legend-dot"
+                            style="background: var(--reactor-green); border-color: var(--reactor-green)"></div>
+                        <span>Core (Start)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot"
+                            style="background: var(--reactor-cyan); border-color: var(--reactor-cyan)"></div>
+                        <span>Standard Relay</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot"
+                            style="background: var(--reactor-warning); border-color: var(--reactor-warning)"></div>
+                        <span>Isotope (Part 2)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot"
+                            style="background: var(--reactor-alert); border-color: var(--reactor-alert)"></div>
+                        <span>Exhaust (Target)</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="controls-area">
+            <div class="control-group">
+                <button id="btn-load-input">📥 Load Input</button>
+                <div style="width: 1px; background: var(--reactor-dim); margin: 0 10px;"></div>
+                <div class="control-group" style="gap: 5px;">
+                    <button id="btn-part1" class="active-mode">Part 1</button>
+                    <button id="btn-part2">Part 2</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <button id="btn-reset">RESET</button>
+                <button id="btn-step">STEP</button>
+                <button id="btn-run">INITIATE SEQUENCE</button>
+            </div>
+
+            <div class="speed-control">
+                <label>PROCESSING SPEED</label>
+                <input type="range" id="speed-slider" min="1" max="100" value="50">
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="input-modal" class="modal">
+        <div class="modal-content">
+            <h2>Search Input Terminal</h2>
+            <div class="modal-buttons" style="margin-bottom: 15px;">
+                <button id="btn-use-example-1">Protocol Alpha (Ex 1)</button>
+                <button id="btn-use-example-2">Protocol Beta (Ex 2)</button>
+            </div>
+            <textarea id="input-area" placeholder="Enter adjacency stream..."></textarea>
+            <div class="modal-buttons" style="justify-content: flex-end; gap: 10px; display: flex;">
+                <button id="btn-cancel-input">ABORT</button>
+                <button id="btn-save-input">UPLOAD</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        const state = {
+            adj: new Map(),
+            nodes: new Map(), // name -> {x, y, type}
+            edges: [], // {from, to}
+            part: 1,
+            queue: [], // { node, childIndex, path, keys }
+            currentPath: [],
+            totalPaths: 0n,
+            isRunning: false,
+            animationId: null,
+            speed: 10,
+            canvas: null,
+            ctx: null,
+            width: 0,
+            height: 0
+        };
+
+        const LAYOUT = {
+            padding: 50,
+            nodeRadius: 10
+        };
+
+        // --- Initialization ---
+        window.onload = () => {
+            state.canvas = document.getElementById('viz-canvas');
+            state.ctx = state.canvas.getContext('2d');
+
+            // Resize handler
+            const observer = new ResizeObserver(() => resizeCanvas());
+            observer.observe(state.canvas.parentElement);
+            resizeCanvas();
+
+            setupEventListeners();
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('clock').innerText = now.toLocaleTimeString();
+            }, 1000);
+
+            // Default load
+            loadInput(`aaa: you hhh\nyou: bbb ccc\nbbb: ddd eee\nccc: ddd eee fff\nddd: ggg\neee: out\nfff: out\nggg: out\nhhh: ccc fff iii\niii: out`);
+        };
+
+        function resizeCanvas() {
+            const rect = state.canvas.parentElement.getBoundingClientRect();
+            state.canvas.width = rect.width;
+            state.canvas.height = rect.height;
+            state.width = rect.width;
+            state.height = rect.height;
+            if (state.nodes.size > 0 && !state.isRunning) {
+                // Re-calculate layout if needed or just draw
+                recalculateLayout();
+                draw();
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('btn-run').onclick = toggleRun;
+            document.getElementById('btn-step').onclick = step;
+            document.getElementById('btn-reset').onclick = resetSimulation;
+            document.getElementById('btn-part1').onclick = () => setPart(1);
+            document.getElementById('btn-part2').onclick = () => setPart(2);
+            document.getElementById('speed-slider').value = state.speed; // Sync slider
+            document.getElementById('speed-slider').oninput = (e) => state.speed = parseInt(e.target.value);
+
+            // Modal
+            const modal = document.getElementById('input-modal');
+            document.getElementById('btn-load-input').onclick = () => modal.classList.add('show');
+            document.getElementById('btn-cancel-input').onclick = () => modal.classList.remove('show');
+            document.getElementById('btn-save-input').onclick = () => {
+                loadInput(document.getElementById('input-area').value);
+                modal.classList.remove('show');
+            };
+            document.getElementById('btn-use-example-1').onclick = () => {
+                document.getElementById('input-area').value = `aaa: you hhh
+you: bbb ccc
+bbb: ddd eee
+ccc: ddd eee fff
+ddd: ggg
+eee: out
+fff: out
+ggg: out
+hhh: ccc fff iii
+iii: out`;
+            };
+            document.getElementById('btn-use-example-2').onclick = () => {
+                document.getElementById('input-area').value = `svr: aaa bbb
+aaa: fft
+fft: ccc
+bbb: tty
+tty: ccc
+ccc: ddd eee
+ddd: hub
+hub: fff
+eee: dac
+dac: fff
+fff: ggg hhh
+ggg: out
+hhh: out`;
+            };
+        }
+
+        function setPart(p) {
+            if (state.part === p) return;
+            state.part = p;
+
+            document.getElementById('btn-part1').className = p === 1 ? 'active-mode' : '';
+            document.getElementById('btn-part2').className = p === 2 ? 'active-mode' : '';
+
+            resetSimulation();
+        }
+
+        function loadInput(text) {
+            state.adj.clear();
+            state.nodes.clear();
+            state.edges = [];
+            const lines = text.trim().split(/\r?\n/);
+            const allNodes = new Set();
+
+            lines.forEach(line => {
+                if (!line.includes(':')) return;
+                const [src, dstStr] = line.split(': ');
+                const dsts = dstStr ? dstStr.split(' ') : [];
+                state.adj.set(src, dsts);
+                allNodes.add(src);
+                dsts.forEach(d => allNodes.add(d));
+            });
+
+            // Rebuild Edges
+            state.adj.forEach((dsts, src) => {
+                dsts.forEach(d => {
+                    state.edges.push({ from: src, to: d });
+                });
+            });
+
+            // Assign Layers (BFS) for layout
+            const startNode = state.part === 1 ? 'you' : 'svr';
+            const layers = new Map();
+
+            // Try to find start node, fallback if not found
+            let actualStart = startNode;
+            if (!allNodes.has(startNode)) {
+                // If 'you' or 'svr' not found, pick the first source
+                actualStart = state.adj.keys().next().value;
+            }
+
+            // Simple topological-ish mock using BFS
+            const q = [[actualStart, 0]];
+            const visited = new Set([actualStart]);
+            layers.set(actualStart, 0);
+
+            while (q.length > 0) {
+                const [u, d] = q.shift();
+                const neighbors = state.adj.get(u) || [];
+                for (const v of neighbors) {
+                    if (!visited.has(v)) {
+                        visited.add(v);
+                        layers.set(v, d + 1);
+                        q.push([v, d + 1]);
+                    }
+                }
+            }
+
+            // Fallback for disconnected
+            allNodes.forEach(n => {
+                if (!layers.has(n)) layers.set(n, 0);
+            });
+
+            state.layers = layers;
+            recalculateLayout();
+            resetSimulation();
+        }
+
+        function recalculateLayout() {
+            if (!state.layers) return;
+            const maxLayer = Math.max(...state.layers.values()) || 0;
+            const nodesPerLayer = new Map();
+            state.layers.forEach((l, n) => {
+                if (!nodesPerLayer.has(l)) nodesPerLayer.set(l, []);
+                nodesPerLayer.get(l).push(n);
+            });
+
+            const layerWidth = (state.width - LAYOUT.padding * 2) / (maxLayer + 1);
+
+            nodesPerLayer.forEach((nodes, layer) => {
+                const layerHeight = (state.height - LAYOUT.padding * 2) / (nodes.length + 1);
+                nodes.sort();
+                nodes.forEach((n, idx) => {
+                    const x = LAYOUT.padding + layer * layerWidth; // Left to right
+                    const y = LAYOUT.padding + (idx + 1) * layerHeight;
+                    state.nodes.set(n, {
+                        x, y,
+                        type: determineType(n)
+                    });
+                });
+            });
+        }
+
+        function determineType(name) {
+            if ((name === 'you' && state.part === 1) || (name === 'svr' && state.part === 2)) return 'start';
+            if (name === 'out') return 'target';
+            if (name === 'dac' || name === 'fft') return 'special';
+            return 'default';
+        }
+
+        function resetSimulation() {
+            state.isRunning = false;
+            // Removed cancelAnimationFrame to keep the render loop active for visual effects
+            state.totalPaths = 0n;
+            state.queue = [];
+            state.currentPath = [];
+
+            const startNode = state.part === 1 ? 'you' : 'svr';
+            const realStart = state.nodes.has(startNode) ? startNode : state.nodes.keys().next().value;
+
+            const initialPath = [realStart];
+            state.queue = [{
+                node: realStart,
+                childIndex: 0,
+                path: initialPath,
+                keys: new Set()
+            }];
+            state.currentPath = initialPath;
+
+            // Initial key check
+            if (state.part === 2) {
+                if (realStart === 'dac') state.queue[0].keys.add('dac');
+                if (realStart === 'fft') state.queue[0].keys.add('fft');
+            }
+
+            document.getElementById('sys-status').innerText = 'READY';
+            document.getElementById('btn-run').innerText = "INITIATE SEQUENCE";
+            updateStats();
+            draw();
+        }
+
+        // Render Loop
+        let lastTime = 0;
+        let timeSinceStep = 0;
+
+        function startRenderLoop() {
+            const loop = (timestamp) => {
+                if (!lastTime) lastTime = timestamp;
+                const dt = timestamp - lastTime;
+                lastTime = timestamp;
+
+                if (state.isRunning) {
+                    // Speed 1-100. Lower is slower.
+                    // Interval range: 1000ms (speed 1) down to 10ms (speed 100)?
+                    // We want step-by-step visibility at low speeds. 
+
+                    let stepsPerFrame = 1;
+                    let interval = 0;
+
+                    if (state.speed <= 90) {
+                        // Map 1..90 to 500ms..10ms
+                        interval = 500 - ((state.speed - 1) * (490 / 89));
+                    } else {
+                        // > 90 means multiple steps per frame (instant mode)
+                        interval = 0;
+                        stepsPerFrame = (state.speed - 90) * 2;
+                    }
+
+                    if (interval > 0) {
+                        timeSinceStep += dt;
+                        if (timeSinceStep >= interval) {
+                            if (!step()) handleComplete();
+                            timeSinceStep = 0;
+                        }
+                    } else {
+                        // Fast mode
+                        for (let k = 0; k < stepsPerFrame; k++) {
+                            if (!step()) {
+                                handleComplete();
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                draw();
+                state.animationId = requestAnimationFrame(loop);
+            };
+            state.animationId = requestAnimationFrame(loop);
+        }
+
+        // Start the loop on load
+        startRenderLoop();
+
+        // Update logic moved to render loop
+        function handleComplete() {
+            state.isRunning = false;
+            document.getElementById('btn-run').innerText = "SEQUENCE COMPLETE";
+            document.getElementById('sys-status').innerText = 'COMPLETE';
+            if (state.queue.length === 0) document.getElementById('stat-activity').innerText = 'FINISHED';
+        }
+
+        function toggleRun() {
+            if (state.isRunning) {
+                state.isRunning = false;
+                document.getElementById('btn-run').innerText = "RESUME SEQUENCE";
+                document.getElementById('sys-status').innerText = 'PAUSED';
+            } else {
+                state.isRunning = true;
+                document.getElementById('btn-run').innerText = "HALT SEQUENCE";
+                document.getElementById('sys-status').innerText = 'PROCESSING...';
+            }
+        }
+
+        function step() {
+            if (state.queue.length === 0) return false;
+
+            // Peek current frame
+            const frame = state.queue[state.queue.length - 1];
+            const { node, childIndex, path, keys } = frame;
+
+            // Update path BEFORE doing work, to ensure we see "where we are"
+            state.currentPath = path;
+
+            const neighbors = state.adj.get(node) || [];
+
+            // Targeted check
+            if (node === 'out') {
+                let valid = true;
+                if (state.part === 2) valid = keys.has('dac') && keys.has('fft');
+
+                if (valid) state.totalPaths += 1n;
+
+                // Backtrack from 'out' immediately to continue search
+                state.queue.pop();
+
+                // Sync currentPath to new top (if any)
+                if (state.queue.length > 0) state.currentPath = state.queue[state.queue.length - 1].path;
+
+                updateStats();
+                return true;
+            }
+
+            if (childIndex >= neighbors.length) {
+                // Backtrack
+                state.queue.pop();
+
+                // Sync currentPath to new top (if any)
+                if (state.queue.length > 0) state.currentPath = state.queue[state.queue.length - 1].path;
+
+                updateStats();
+                return true;
+            }
+
+            const nextNode = neighbors[childIndex];
+            frame.childIndex++;
+
+            const nextKeys = new Set(keys);
+            if (state.part === 2) {
+                if (nextNode === 'dac') nextKeys.add('dac');
+                if (nextNode === 'fft') nextKeys.add('fft');
+            }
+
+            const newPath = [...path, nextNode];
+            state.queue.push({
+                node: nextNode,
+                childIndex: 0,
+                path: newPath,
+                keys: nextKeys
+            });
+
+            // Sync currentPath to the newly pushed node so we see the "Step Forward" immediately
+            state.currentPath = newPath;
+
+            updateStats();
+            return true;
+        }
+
+        function updateStats() {
+            const frame = state.queue.length > 0 ? state.queue[state.queue.length - 1] : null;
+            document.getElementById('stat-current').innerText = frame ? frame.node : '-';
+            document.getElementById('stat-paths').innerText = state.totalPaths.toString();
+            document.getElementById('stat-activity').innerText = state.isRunning ? 'SEARCHING' : (state.queue.length === 0 ? 'IDLE' : 'PAUSED');
+
+            // Isotope Slots
+            const dacSlot = document.getElementById('slot-dac');
+            const fftSlot = document.getElementById('slot-fft');
+
+            if (frame && frame.keys) {
+                if (frame.keys.has('dac')) dacSlot.classList.add('active');
+                else dacSlot.classList.remove('active');
+
+                if (frame.keys.has('fft')) fftSlot.classList.add('active');
+                else fftSlot.classList.remove('active');
+            } else {
+                dacSlot.classList.remove('active');
+                fftSlot.classList.remove('active');
+            }
+        }
+
+        function draw() {
+            const { ctx, width, height } = state;
+            ctx.clearRect(0, 0, width, height);
+
+            if (state.nodes.size === 0) return;
+
+            // 1. Prepare Path Set for fast lookup
+            // Current path: array of strings ['nodeA', 'nodeB', ...]
+            const pathNodeSet = new Set(state.currentPath);
+            const pathEdgeSet = new Set();
+            for (let i = 0; i < state.currentPath.length - 1; i++) {
+                const u = state.currentPath[i];
+                const v = state.currentPath[i + 1];
+                // Store both directions just in case, though graph is directed here? 
+                // Input format `aaa: bbb` implies directed. Our edges are directed.
+                pathEdgeSet.add(`${u}->${v}`);
+            }
+
+            // 2. Draw ALL Edges
+            state.edges.forEach(edge => {
+                const u = state.nodes.get(edge.from);
+                const v = state.nodes.get(edge.to);
+                if (!u || !v) return;
+
+                const isPathEdge = pathEdgeSet.has(`${edge.from}->${edge.to}`);
+
+                ctx.beginPath();
+                ctx.moveTo(u.x, u.y);
+                ctx.lineTo(v.x, v.y);
+
+                if (isPathEdge) {
+                    ctx.strokeStyle = '#33ff33'; // Bright Green
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#33ff33';
+                    ctx.shadowBlur = 15;
+                    ctx.globalAlpha = 1.0;
+                } else {
+                    ctx.strokeStyle = '#1a661a'; // Dim Green
+                    ctx.lineWidth = 1;
+                    ctx.shadowBlur = 0;
+                    ctx.globalAlpha = 0.3;
+                }
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+                ctx.shadowBlur = 0;
+            });
+
+            // 3. Draw Nodes
+            const currentHead = state.currentPath.length > 0 ? state.currentPath[state.currentPath.length - 1] : null;
+            const time = Date.now();
+
+            state.nodes.forEach((val, key) => {
+                const isHead = (key === currentHead);
+                const isOnPath = pathNodeSet.has(key);
+
+                // Base Type Colors
+                let baseColor = '#1a661a'; // Default dim
+                let strokeColor = '#33ff33'; // Default border
+
+                if (val.type === 'start') { baseColor = '#004400'; strokeColor = '#33ff33'; }
+                if (val.type === 'target') { baseColor = '#440000'; strokeColor = '#ff3333'; }
+                if (val.type === 'special') { baseColor = '#443300'; strokeColor = '#ffcc00'; }
+
+                // Dynamic State Overrides
+                if (isOnPath) {
+                    baseColor = '#003300'; // Darker fill for contrast
+                    strokeColor = '#ccffcc'; // White-green for active path
+                    ctx.shadowColor = '#33ff33';
+                    ctx.shadowBlur = 10;
+                }
+
+                if (isHead) {
+                    baseColor = '#ccffcc'; // Brightest center
+                    strokeColor = '#ffffff';
+                    ctx.shadowColor = '#33ff33';
+                    ctx.shadowBlur = 20;
+                }
+
+                // Draw Node Body
+                ctx.beginPath();
+                ctx.arc(val.x, val.y, LAYOUT.nodeRadius, 0, Math.PI * 2);
+                ctx.fillStyle = isHead ? '#fff' : baseColor;
+                ctx.fill();
+
+                ctx.lineWidth = isOnPath ? 2 : 1;
+                ctx.strokeStyle = strokeColor;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // 4. Special Effects for HEAD
+                if (isHead) {
+                    // Pulsing Ring
+                    const pulse = (Math.sin(time / 150) + 1) / 2; // Fast pulse
+                    const radius = LAYOUT.nodeRadius * (1.5 + pulse * 0.8);
+
+                    ctx.beginPath();
+                    ctx.arc(val.x, val.y, radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(51, 255, 51, ${1 - pulse})`;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Rotating Crosshair
+                    ctx.save();
+                    ctx.translate(val.x, val.y);
+                    ctx.rotate(time / 500);
+                    ctx.strokeStyle = '#33ff33';
+                    ctx.lineWidth = 2;
+
+                    // Cross
+                    const sz = LAYOUT.nodeRadius * 2.5;
+                    ctx.beginPath();
+                    ctx.moveTo(-sz, 0); ctx.lineTo(sz, 0);
+                    ctx.moveTo(0, -sz); ctx.lineTo(0, sz);
+                    ctx.stroke();
+
+                    // Box
+                    const sz2 = LAYOUT.nodeRadius * 1.8;
+                    const corner = sz2 * 0.3;
+                    ctx.beginPath();
+                    // Corner brackets logic
+                    ctx.moveTo(-sz2, -sz2 + corner); ctx.lineTo(-sz2, -sz2); ctx.lineTo(-sz2 + corner, -sz2);
+                    ctx.moveTo(sz2, -sz2 + corner); ctx.lineTo(sz2, -sz2); ctx.lineTo(sz2 - corner, -sz2);
+                    ctx.moveTo(-sz2, sz2 - corner); ctx.lineTo(-sz2, sz2); ctx.lineTo(-sz2 + corner, sz2);
+                    ctx.moveTo(sz2, sz2 - corner); ctx.lineTo(sz2, sz2); ctx.lineTo(sz2 - corner, sz2);
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
+
+                // Labels
+                if (state.nodes.size < 60 || isOnPath || val.type !== 'default') {
+                    ctx.fillStyle = isHead ? '#000' : '#33ff33';
+                    if (!isOnPath && !isHead) ctx.fillStyle = 'rgba(51, 255, 51, 0.5)';
+
+                    ctx.font = 'bold 12px "Share Tech Mono"';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    // Offset label if head
+                    const ly = isHead ? val.y - 30 : val.y;
+                    ctx.fillText(key, val.x, ly);
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

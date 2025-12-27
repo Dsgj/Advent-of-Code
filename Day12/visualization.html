@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advent of Code - Day 12 - Christmas Tree Farm</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Override for new layout */
+        main {
+            display: flex;
+            flex-direction: column;
+            max-width: 1400px;
+            gap: 0.5rem;
+            padding: 0.5rem;
+        }
+
+        header {
+            padding: 0.5rem 1rem;
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+        }
+
+        .panel {
+            padding: 0.6rem;
+        }
+
+        .panel h2 {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .top-section {
+            display: grid;
+            grid-template-columns: 1fr 220px;
+            gap: 0.5rem;
+        }
+
+        .result-banner {
+            background: linear-gradient(135deg, var(--tree-dark) 0%, var(--tree-green) 100%);
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid var(--tree-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .result-banner h2 {
+            font-size: 0.9rem;
+            color: var(--snow-white);
+            margin: 0;
+            border: none;
+        }
+
+        .result-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--present-gold);
+            text-shadow: 0 0 15px var(--glow-gold);
+        }
+
+        .result-sub {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* Progress bar */
+        .progress-container {
+            background: var(--bg-primary);
+            border-radius: 6px;
+            padding: 0.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 16px;
+            background: var(--bark-dark);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--tree-green) 0%, var(--present-gold) 100%);
+            transition: width 0.1s ease;
+            border-radius: 12px;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--snow-white);
+            text-shadow: 0 0 4px black;
+        }
+
+        /* Region overview grid */
+        .region-overview {
+            display: grid;
+            gap: 1px;
+            padding: 4px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+        }
+
+        .region-cell {
+            aspect-ratio: 1;
+            border-radius: 1px;
+            background: var(--bark-brown);
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .region-cell:hover {
+            transform: scale(1.3);
+            z-index: 10;
+            border-color: var(--snow-white);
+        }
+
+        .region-cell.pending {
+            background: var(--bark-brown);
+        }
+
+        .region-cell.processing {
+            background: var(--present-gold);
+            animation: pulse 0.3s ease infinite;
+        }
+
+        .region-cell.success {
+            background: #2ecc71;
+            box-shadow: 0 0 4px #2ecc71;
+        }
+
+        .region-cell.failure {
+            background: #e74c3c;
+            box-shadow: 0 0 4px #e74c3c;
+        }
+
+        .region-cell.selected {
+            border: 2px solid var(--snow-white);
+            transform: scale(1.2);
+        }
+
+        /* Detail popup */
+        .detail-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .detail-popup-overlay.active {
+            display: flex;
+        }
+
+        .detail-popup {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            transform-origin: var(--origin-x, 50%) var(--origin-y, 50%);
+            animation: popupGrow 0.25s ease-out;
+        }
+
+        @keyframes popupGrow {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .detail-popup .close-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--bg-tertiary);
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-popup .close-btn:hover {
+            background: var(--present-red);
+            color: white;
+        }
+
+        .detail-popup h3 {
+            color: var(--accent);
+            font-size: 1rem;
+            margin-bottom: 0.8rem;
+            padding-right: 30px;
+        }
+
+        .detail-popup .stats-list {
+            margin-bottom: 0.8rem;
+        }
+
+        .detail-grid-container {
+            display: flex;
+            justify-content: center;
+            padding: 0.5rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            gap: 1px;
+            background: var(--bark-dark);
+            padding: 3px;
+            border-radius: 6px;
+            max-width: 100%;
+            overflow: auto;
+        }
+
+        .detail-grid .cell {
+            background: var(--bark-brown);
+            border-radius: 2px;
+        }
+
+        .pieces-needed {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            margin-top: 0.3rem;
+        }
+
+        .piece-tag {
+            padding: 0.2rem 0.4rem;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            border: 1px solid var(--border);
+        }
+
+        .piece-tag span {
+            font-weight: bold;
+        }
+
+        /* Shapes mini display */
+        .shapes-mini {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: var(--bg-primary);
+            border-radius: 6px;
+        }
+
+        .shape-mini {
+            display: grid;
+            gap: 1px;
+            padding: 3px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .shape-mini .scell {
+            width: 6px;
+            height: 6px;
+            border-radius: 1px;
+        }
+
+        .shape-mini .scell.on {
+            background: var(--present-gold);
+        }
+
+        .shape-mini .scell.off {
+            background: transparent;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+
+            .top-section,
+            .detail-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Christmas Tree Farm</h1>
+    </header>
+
+    <a href="../index.html" class="home-link">← Calendar</a>
+    <style>
+        .home-link {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1000;
+            background: var(--tree-dark, #1a2f1a);
+            color: var(--present-gold, #f1c40f);
+            border: 2px solid var(--present-gold, #f1c40f);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-family: sans-serif;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+        }
+
+        .home-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--present-gold, #f1c40f);
+        }
+    </style>
+
+    <main>
+        <!-- Result Banner -->
+        <div class="result-banner">
+            <h2>🎁 Regions That Can Fit All Presents</h2>
+            <div class="result-number" id="result-count">—</div>
+            <div class="result-sub">of <span id="total-regions">0</span> total regions</div>
+        </div>
+
+        <!-- Top Section: Overview + Controls -->
+        <div class="top-section">
+            <div class="panel">
+                <h2>📊 Region Overview</h2>
+
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                        <span class="progress-text" id="progress-text">0 / 0</span>
+                    </div>
+                </div>
+
+                <div class="controls" style="margin-bottom: 1rem;">
+                    <button id="btn-solve-all" class="btn btn-primary">▶ Solve All</button>
+                    <button id="btn-stop" class="btn btn-secondary" disabled>⏹ Stop</button>
+                    <button id="btn-load" class="btn btn-secondary">📋 Load Input</button>
+                </div>
+
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                    Click any cell to see region details. <span style="color: #2ecc71;">■ fits</span> <span
+                        style="color: #e74c3c;">■ doesn't fit</span>
+                </p>
+
+                <div class="region-overview" id="region-overview"></div>
+            </div>
+
+            <div class="panel">
+                <h2>🎁 Shapes</h2>
+                <div class="shapes-mini" id="shapes-display"></div>
+
+                <h2 style="margin-top: 1rem;">📈 Statistics</h2>
+                <div class="stats-list">
+                    <div class="stat-item success">
+                        <span class="label">Can Fit ✓</span>
+                        <span id="stat-success" class="value">0</span>
+                    </div>
+                    <div class="stat-item failure">
+                        <span class="label">Cannot Fit ✗</span>
+                        <span id="stat-failure" class="value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Processed</span>
+                        <span id="stat-processed" class="value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Popup -->
+        <div class="detail-popup-overlay" id="detail-popup-overlay">
+            <div class="detail-popup" id="detail-popup">
+                <button class="close-btn" id="close-popup">×</button>
+                <h3>Region <span id="detail-index">0</span></h3>
+                <div class="stats-list">
+                    <div class="stat-item">
+                        <span class="label">Size</span>
+                        <span id="detail-size" class="value">0x0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Pieces</span>
+                        <span id="detail-pieces" class="value">0</span>
+                    </div>
+                    <div id="detail-status" class="stat-item">
+                        <span class="label">Status</span>
+                        <span class="value">Pending</span>
+                    </div>
+                </div>
+                <div class="pieces-needed" id="detail-pieces-list"></div>
+                <div class="detail-grid-container">
+                    <div class="detail-grid" id="detail-grid"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Load Input Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3>📋 Load Puzzle Input</h3>
+            <textarea id="input-textarea" placeholder="Paste your puzzle input here..."></textarea>
+            <div class="modal-buttons">
+                <button id="btn-use-example" class="btn btn-secondary">Use Example</button>
+                <button id="btn-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="btn-apply" class="btn btn-primary">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Example input
+        const EXAMPLE_INPUT = `0:
+###
+.#.
+###
+
+1:
+..#
+.##
+###
+
+2:
+###
+###
+..#
+
+3:
+.##
+###
+#.#
+
+4:
+##.
+.##
+..#
+
+5:
+#.#
+#.#
+###
+
+4x4: 0 0 0 0 2 0
+12x5: 1 0 1 0 2 2
+12x5: 1 0 1 0 3 2`;
+
+        // State
+        let shapes = [];
+        let allVariants = [];
+        let regions = [];
+        let results = []; // 'pending' | 'success' | 'failure'
+        let isRunning = false;
+        let currentIndex = 0;
+        let successCount = 0;
+        let failureCount = 0;
+        let selectedRegion = -1;
+        let abortFlag = false;
+
+        // Parse functions
+        function parseShape(block) {
+            const lines = block.trim().split(/\r?\n/).slice(1);
+            const coords = [];
+            for (let row = 0; row < lines.length; row++) {
+                for (let col = 0; col < lines[row].length; col++) {
+                    if (lines[row][col] === '#') {
+                        coords.push([row, col]);
+                    }
+                }
+            }
+            return coords;
+        }
+
+        function normalize(shape) {
+            if (shape.length === 0) return shape;
+            const minRow = Math.min(...shape.map(c => c[0]));
+            const minCol = Math.min(...shape.map(c => c[1]));
+            return shape.map(([r, c]) => [r - minRow, c - minCol])
+                .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+        }
+
+        function rotate90(shape) {
+            return normalize(shape.map(([r, c]) => [c, -r]));
+        }
+
+        function flipH(shape) {
+            return normalize(shape.map(([r, c]) => [r, -c]));
+        }
+
+        function generateVariants(shape) {
+            const variants = [];
+            const seen = new Set();
+            let current = normalize(shape);
+            for (let flip = 0; flip < 2; flip++) {
+                for (let rot = 0; rot < 4; rot++) {
+                    const key = JSON.stringify(current);
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        variants.push(current);
+                    }
+                    current = rotate90(current);
+                }
+                current = flipH(current);
+            }
+            return variants;
+        }
+
+        function parseInput(input) {
+            const blocks = input.trim().split(/\r?\n\r?\n/);
+            shapes = [];
+            regions = [];
+
+            for (const block of blocks) {
+                const trimmed = block.trim();
+                const lines = trimmed.split(/\r?\n/);
+                let hasShape = false;
+
+                for (const line of lines) {
+                    const lineTrimmed = line.trim();
+                    const match = lineTrimmed.match(/^(\d+)x(\d+):\s*(.*)$/);
+                    if (match) {
+                        const width = parseInt(match[1]);
+                        const height = parseInt(match[2]);
+                        const counts = match[3].split(/\s+/).map(n => parseInt(n));
+                        regions.push({ width, height, counts });
+                    } else if (lineTrimmed.match(/^\d+:$/)) {
+                        hasShape = true;
+                    }
+                }
+
+                if (hasShape && lines[0].match(/^\d+:$/)) {
+                    shapes.push(parseShape(trimmed));
+                }
+            }
+
+            allVariants = shapes.map(s => generateVariants(s));
+            results = regions.map(() => 'pending');
+            successCount = 0;
+            failureCount = 0;
+            currentIndex = 0;
+            selectedRegion = -1;
+        }
+
+        // Solver (synchronous for speed)
+        function canPlace(variant, startRow, startCol, grid, width, height) {
+            for (const [dr, dc] of variant) {
+                const r = startRow + dr;
+                const c = startCol + dc;
+                if (r < 0 || r >= height || c < 0 || c >= width) return false;
+                if (grid[r][c]) return false;
+            }
+            return true;
+        }
+
+        function placeShape(variant, startRow, startCol, grid) {
+            for (const [dr, dc] of variant) {
+                grid[startRow + dr][startCol + dc] = true;
+            }
+        }
+
+        function removeShape(variant, startRow, startCol, grid) {
+            for (const [dr, dc] of variant) {
+                grid[startRow + dr][startCol + dc] = false;
+            }
+        }
+
+        function solve(pieces, pieceIndex, grid, width, height) {
+            if (pieceIndex >= pieces.length) return true;
+
+            const shapeIdx = pieces[pieceIndex];
+            const variants = allVariants[shapeIdx];
+
+            for (const variant of variants) {
+                for (let row = 0; row < height; row++) {
+                    for (let col = 0; col < width; col++) {
+                        if (canPlace(variant, row, col, grid, width, height)) {
+                            placeShape(variant, row, col, grid);
+                            if (solve(pieces, pieceIndex + 1, grid, width, height)) {
+                                return true;
+                            }
+                            removeShape(variant, row, col, grid);
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Solve and return the solution grid with piece labels
+        function solveWithSolution(region) {
+            const pieces = [];
+            for (let i = 0; i < region.counts.length; i++) {
+                for (let j = 0; j < region.counts[i]; j++) {
+                    pieces.push(i);
+                }
+            }
+
+            if (pieces.length === 0) return { success: true, grid: null };
+
+            const totalCells = pieces.reduce((sum, idx) => sum + shapes[idx].length, 0);
+            if (totalCells > region.width * region.height) return { success: false, grid: null };
+
+            // Grid stores piece index (0-based) or -1 for empty
+            const grid = Array.from({ length: region.height }, () => Array(region.width).fill(-1));
+            pieces.sort((a, b) => shapes[b].length - shapes[a].length);
+
+            function solveRecursive(pieceIndex) {
+                if (pieceIndex >= pieces.length) return true;
+
+                const shapeIdx = pieces[pieceIndex];
+                const variants = allVariants[shapeIdx];
+
+                for (const variant of variants) {
+                    for (let row = 0; row < region.height; row++) {
+                        for (let col = 0; col < region.width; col++) {
+                            let canFit = true;
+                            for (const [dr, dc] of variant) {
+                                const r = row + dr;
+                                const c = col + dc;
+                                if (r < 0 || r >= region.height || c < 0 || c >= region.width || grid[r][c] !== -1) {
+                                    canFit = false;
+                                    break;
+                                }
+                            }
+                            if (canFit) {
+                                // Place with piece index
+                                for (const [dr, dc] of variant) {
+                                    grid[row + dr][col + dc] = pieceIndex;
+                                }
+                                if (solveRecursive(pieceIndex + 1)) {
+                                    return true;
+                                }
+                                // Remove
+                                for (const [dr, dc] of variant) {
+                                    grid[row + dr][col + dc] = -1;
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+
+            const success = solveRecursive(0);
+            return { success, grid: success ? grid : null };
+        }
+
+        function solveRegion(region) {
+            const pieces = [];
+            for (let i = 0; i < region.counts.length; i++) {
+                for (let j = 0; j < region.counts[i]; j++) {
+                    pieces.push(i);
+                }
+            }
+
+            if (pieces.length === 0) return true;
+
+            const totalCells = pieces.reduce((sum, idx) => sum + shapes[idx].length, 0);
+            if (totalCells > region.width * region.height) return false;
+
+            const grid = Array.from({ length: region.height }, () => Array(region.width).fill(false));
+            pieces.sort((a, b) => shapes[b].length - shapes[a].length);
+
+            return solve(pieces, 0, grid, region.width, region.height);
+        }
+
+        // UI Rendering
+        function renderShapes() {
+            const container = document.getElementById('shapes-display');
+            container.innerHTML = '';
+
+            shapes.forEach((shape, idx) => {
+                const maxRow = Math.max(...shape.map(c => c[0])) + 1;
+                const maxCol = Math.max(...shape.map(c => c[1])) + 1;
+
+                const mini = document.createElement('div');
+                mini.className = 'shape-mini';
+                mini.style.gridTemplateColumns = `repeat(${maxCol}, 6px)`;
+                mini.title = `Shape ${idx} (${shape.length} cells)`;
+
+                for (let r = 0; r < maxRow; r++) {
+                    for (let c = 0; c < maxCol; c++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'scell ' + (shape.some(([sr, sc]) => sr === r && sc === c) ? 'on' : 'off');
+                        mini.appendChild(cell);
+                    }
+                }
+                container.appendChild(mini);
+            });
+        }
+
+        function renderOverview() {
+            const container = document.getElementById('region-overview');
+            container.innerHTML = '';
+
+            // Calculate optimal column count - aim for a wider grid (more cols, fewer rows)
+            const count = regions.length;
+            // Target: ~2:1 aspect ratio (wide), find a divisor that works
+            let cols = Math.ceil(Math.sqrt(count * 2.5));
+            // Adjust to find a divisor for perfect rows
+            while (cols > 1 && count % cols !== 0) {
+                cols++;
+            }
+            // Cap at reasonable size
+            if (cols > 200) cols = Math.ceil(Math.sqrt(count * 2.5));
+
+            container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+            regions.forEach((region, idx) => {
+                const cell = document.createElement('div');
+                cell.className = 'region-cell ' + results[idx];
+                cell.title = `Region ${idx + 1}: ${region.width}x${region.height}`;
+                cell.dataset.index = idx;
+                if (idx === selectedRegion) cell.classList.add('selected');
+                cell.onclick = () => selectRegion(idx);
+                container.appendChild(cell);
+            });
+
+            document.getElementById('total-regions').textContent = regions.length;
+        }
+
+        function updateProgress() {
+            const processed = successCount + failureCount;
+            const percent = regions.length > 0 ? (processed / regions.length * 100) : 0;
+
+            document.getElementById('progress-fill').style.width = percent + '%';
+            document.getElementById('progress-text').textContent = `${processed} / ${regions.length}`;
+            document.getElementById('stat-success').textContent = successCount;
+            document.getElementById('stat-failure').textContent = failureCount;
+            document.getElementById('stat-processed').textContent = processed;
+            document.getElementById('result-count').textContent = successCount;
+        }
+
+        function updateCell(idx, status) {
+            results[idx] = status;
+            const cell = document.querySelector(`.region-cell[data-index="${idx}"]`);
+            if (cell) {
+                cell.className = 'region-cell ' + status;
+                if (idx === selectedRegion) cell.classList.add('selected');
+            }
+        }
+
+        function selectRegion(idx, event) {
+            const prev = document.querySelector('.region-cell.selected');
+            if (prev) prev.classList.remove('selected');
+
+            selectedRegion = idx;
+            const cell = document.querySelector(`.region-cell[data-index="${idx}"]`);
+            if (cell) cell.classList.add('selected');
+
+            // Show popup with animation from clicked cell
+            const overlay = document.getElementById('detail-popup-overlay');
+            const popup = document.getElementById('detail-popup');
+
+            // Calculate origin from clicked cell
+            if (cell) {
+                const rect = cell.getBoundingClientRect();
+                const originX = rect.left + rect.width / 2;
+                const originY = rect.top + rect.height / 2;
+                popup.style.setProperty('--origin-x', originX + 'px');
+                popup.style.setProperty('--origin-y', originY + 'px');
+            }
+
+            // Force re-animation by toggling
+            popup.style.animation = 'none';
+            popup.offsetHeight; // Trigger reflow
+            popup.style.animation = 'popupGrow 0.25s ease-out';
+
+            overlay.classList.add('active');
+            renderDetail(idx);
+        }
+
+        function closePopup() {
+            document.getElementById('detail-popup-overlay').classList.remove('active');
+            const prev = document.querySelector('.region-cell.selected');
+            if (prev) prev.classList.remove('selected');
+            selectedRegion = -1;
+        }
+
+        function renderDetail(idx) {
+            const region = regions[idx];
+            document.getElementById('detail-index').textContent = idx + 1;
+            document.getElementById('detail-size').textContent = `${region.width}x${region.height}`;
+
+            const pieces = [];
+            for (let i = 0; i < region.counts.length; i++) {
+                for (let j = 0; j < region.counts[i]; j++) {
+                    pieces.push(i);
+                }
+            }
+
+            document.getElementById('detail-pieces').textContent = pieces.length;
+
+            const statusEl = document.getElementById('detail-status');
+            const status = results[idx];
+            statusEl.className = 'stat-item ' + (status === 'success' ? 'success' : status === 'failure' ? 'failure' : '');
+            statusEl.querySelector('.value').textContent = status === 'pending' ? 'Pending' : status === 'success' ? '✓ Fits!' : '✗ No fit';
+
+            // Pieces list
+            const piecesList = document.getElementById('detail-pieces-list');
+            piecesList.innerHTML = '';
+            const countMap = {};
+            pieces.forEach(p => countMap[p] = (countMap[p] || 0) + 1);
+            Object.keys(countMap).forEach(p => {
+                const tag = document.createElement('span');
+                tag.className = 'piece-tag';
+                tag.innerHTML = `Shape ${p}: <span>${countMap[p]}</span>`;
+                piecesList.appendChild(tag);
+            });
+
+            // Grid preview - show solution if available
+            const gridContainer = document.getElementById('detail-grid');
+            const cellSize = Math.max(6, Math.min(16, Math.floor(300 / Math.max(region.width, region.height))));
+
+            gridContainer.innerHTML = '';
+            gridContainer.style.gridTemplateColumns = `repeat(${region.width}, ${cellSize}px)`;
+
+            // Colors for pieces
+            const pieceColors = [
+                '#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6',
+                '#1abc9c', '#e91e63', '#00bcd4', '#ff5722', '#8bc34a',
+                '#673ab7', '#ffeb3b', '#795548', '#607d8b', '#ff9800'
+            ];
+
+            // Try to get solution
+            let solutionGrid = null;
+            if (status === 'success') {
+                const result = solveWithSolution(region);
+                solutionGrid = result.grid;
+            }
+
+            for (let r = 0; r < region.height; r++) {
+                for (let c = 0; c < region.width; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.style.width = cellSize + 'px';
+                    cell.style.height = cellSize + 'px';
+
+                    if (solutionGrid && solutionGrid[r][c] !== -1) {
+                        const pieceIdx = solutionGrid[r][c];
+                        cell.style.background = pieceColors[pieceIdx % pieceColors.length];
+                        cell.style.boxShadow = `inset 0 0 2px rgba(255,255,255,0.5)`;
+                    }
+
+                    gridContainer.appendChild(cell);
+                }
+            }
+        }
+
+        // Solve all (async with batching for responsiveness)
+        async function solveAll() {
+            isRunning = true;
+            abortFlag = false;
+            document.getElementById('btn-solve-all').disabled = true;
+            document.getElementById('btn-stop').disabled = false;
+
+            const batchSize = 5;
+
+            while (currentIndex < regions.length && !abortFlag) {
+                // Process a batch
+                for (let i = 0; i < batchSize && currentIndex < regions.length; i++) {
+                    const idx = currentIndex;
+                    updateCell(idx, 'processing');
+
+                    // Use setTimeout to allow UI to update
+                    await new Promise(resolve => setTimeout(resolve, 0));
+
+                    const success = solveRegion(regions[idx]);
+                    if (success) {
+                        successCount++;
+                        updateCell(idx, 'success');
+                    } else {
+                        failureCount++;
+                        updateCell(idx, 'failure');
+                    }
+
+                    currentIndex++;
+                    updateProgress();
+                }
+
+                // Allow UI to breathe
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+
+            isRunning = false;
+            document.getElementById('btn-solve-all').disabled = false;
+            document.getElementById('btn-stop').disabled = true;
+        }
+
+        function stopSolving() {
+            abortFlag = true;
+        }
+
+        // Event handlers
+        document.getElementById('btn-solve-all').onclick = solveAll;
+        document.getElementById('btn-stop').onclick = stopSolving;
+
+        // Popup close handlers
+        document.getElementById('close-popup').onclick = closePopup;
+        document.getElementById('detail-popup-overlay').onclick = (e) => {
+            if (e.target === e.currentTarget) closePopup();
+        };
+
+        document.getElementById('btn-load').onclick = () => {
+            document.getElementById('modal').classList.add('active');
+            const saved = localStorage.getItem('day12-input');
+            if (saved) {
+                document.getElementById('input-textarea').value = saved;
+            }
+        };
+
+        document.getElementById('btn-use-example').onclick = () => {
+            document.getElementById('input-textarea').value = EXAMPLE_INPUT;
+        };
+
+        document.getElementById('btn-cancel').onclick = () => {
+            document.getElementById('modal').classList.remove('active');
+        };
+
+        document.getElementById('btn-apply').onclick = () => {
+            const input = document.getElementById('input-textarea').value;
+            localStorage.setItem('day12-input', input);
+
+            parseInput(input);
+            renderShapes();
+            renderOverview();
+            updateProgress();
+
+            document.getElementById('detail-section').style.display = 'none';
+            document.getElementById('modal').classList.remove('active');
+        };
+
+        // Init
+        function init() {
+            const saved = localStorage.getItem('day12-input');
+            const input = saved || EXAMPLE_INPUT;
+
+            parseInput(input);
+            renderShapes();
+            renderOverview();
+            updateProgress();
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

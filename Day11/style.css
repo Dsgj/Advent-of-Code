@@ -1,0 +1,344 @@
+/* Day 11: Reactor - Sci-Fi Control System Theme */
+@import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap");
+
+:root {
+  /* Reactor Palette */
+  --reactor-black: #020402;
+  --reactor-dark: #0a140a;
+  --reactor-green: #33ff33;
+  --reactor-dim: #1a661a;
+  --reactor-alert: #ff3333;
+  --reactor-warning: #ffcc00;
+  --reactor-cyan: #00ffff;
+
+  --crt-scanline: rgba(18, 16, 16, 0.1);
+  --crt-flicker: rgba(30, 255, 30, 0.02);
+
+  --panel-bg: rgba(5, 12, 5, 0.9);
+  --panel-border: #1a661a;
+
+  --font-main: "Share Tech Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--reactor-black);
+  color: var(--reactor-green);
+  font-family: var(--font-main);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* CRT Screen Effect Overlay */
+body::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(
+      90deg,
+      rgba(255, 0, 0, 0.06),
+      rgba(0, 255, 0, 0.02),
+      rgba(0, 0, 255, 0.06)
+    );
+  z-index: 100;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}
+
+/* App Layout */
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr auto; /* Header, Main, Footer/Controls */
+  height: 100%;
+  padding: 20px;
+  gap: 15px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--reactor-dim);
+  padding-bottom: 10px;
+}
+
+h1 {
+  margin: 0;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px var(--reactor-green);
+  font-size: 1.8rem;
+  letter-spacing: 2px;
+}
+
+.system-status {
+  font-size: 0.8rem;
+  color: var(--reactor-dim);
+  text-transform: uppercase;
+  border: 1px solid var(--reactor-dim);
+  padding: 4px 8px;
+}
+
+/* Main Content Area */
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  min-height: 0; /* Important for flex/grid scrolling */
+}
+
+/* Visualization Panel (Left) */
+.viz-container {
+  border: 2px solid var(--reactor-dim);
+  background: rgba(0, 20, 0, 0.2);
+  position: relative;
+  border-radius: 4px;
+  box-shadow: inset 0 0 30px rgba(0, 50, 0, 0.5);
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.overlay-corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--reactor-green);
+  opacity: 0.5;
+}
+.tl {
+  top: 10px;
+  left: 10px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.tr {
+  top: 10px;
+  right: 10px;
+  border-left: 0;
+  border-bottom: 0;
+}
+.bl {
+  bottom: 10px;
+  left: 10px;
+  border-right: 0;
+  border-top: 0;
+}
+.br {
+  bottom: 10px;
+  right: 10px;
+  border-left: 0;
+  border-top: 0;
+}
+
+/* Diagnostics Panel (Right) */
+.diagnostics-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.panel-block {
+  background: var(--panel-bg);
+  border: 1px solid var(--reactor-dim);
+  padding: 15px;
+  border-radius: 2px;
+}
+
+.panel-block h3 {
+  margin: 0 0 10px 0;
+  font-size: 0.9rem;
+  color: var(--reactor-green);
+  border-bottom: 1px solid var(--reactor-dim);
+  padding-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.stat-label {
+  color: var(--reactor-dim);
+} /* Actually dim green */
+.stat-value {
+  color: var(--reactor-green);
+  font-weight: bold;
+  text-shadow: 0 0 5px var(--reactor-dim);
+}
+
+.isotope-display {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+}
+
+.isotope-slot {
+  width: 60px;
+  height: 60px;
+  border: 2px dashed var(--reactor-dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--reactor-dim);
+  font-size: 0.7rem;
+  transition: all 0.3s;
+}
+
+.isotope-slot.active {
+  border-color: var(--reactor-warning);
+  border-style: solid;
+  background: rgba(255, 200, 0, 0.1);
+  color: var(--reactor-warning);
+  box-shadow: 0 0 15px var(--reactor-warning);
+}
+
+.isotope-icon {
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
+/* Legend */
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+  font-size: 0.8rem;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid;
+}
+
+/* Controls (Bottom) */
+.controls-area {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel-bg);
+  border-top: 2px solid var(--reactor-dim);
+  padding: 10px 20px;
+}
+
+.control-group {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  background: transparent;
+  border: 1px solid var(--reactor-dim);
+  color: var(--reactor-green);
+  padding: 8px 16px;
+  font-family: var(--font-main);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background: var(--reactor-green);
+  color: var(--reactor-black);
+  box-shadow: 0 0 15px var(--reactor-green);
+}
+
+button.active-mode {
+  border-color: var(--reactor-warning);
+  color: var(--reactor-warning);
+  box-shadow: 0 0 5px var(--reactor-warning);
+}
+
+/* Speed Slider */
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--reactor-dim);
+  font-size: 0.8rem;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  background: var(--reactor-dim);
+  height: 4px;
+  border-radius: 2px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--reactor-green);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--reactor-green);
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.modal.show {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--reactor-black);
+  border: 2px solid var(--reactor-green);
+  padding: 20px;
+  width: 600px;
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.2);
+}
+
+.modal-content h2 {
+  color: var(--reactor-green);
+  border-bottom: 1px solid var(--reactor-dim);
+  margin-top: 0;
+}
+
+textarea {
+  width: 100%;
+  height: 200px;
+  background: #000;
+  border: 1px solid var(--reactor-dim);
+  color: var(--reactor-green);
+  font-family: monospace;
+  padding: 10px;
+  margin: 10px 0;
+}

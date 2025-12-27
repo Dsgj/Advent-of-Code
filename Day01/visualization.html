@@ -9,6 +9,32 @@
 </head>
 
 <body>
+    <a href="../index.html" class="home-link">← Calendar</a>
+    <style>
+        .home-link {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1000;
+            transition: all 0.3s;
+            background: var(--metal-mid);
+            color: var(--accent);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-family: 'Oswald', sans-serif;
+            border: 1px solid var(--text-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 0 5px var(--glow);
+        }
+
+        .home-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--glow);
+        }
+    </style>
     <h1>🔐 SECRET VAULT CRACKER 🔐</h1>
     <p class="subtitle">Day 1 - HQ Coordinate Triangulation System</p>
 

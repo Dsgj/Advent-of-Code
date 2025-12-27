@@ -15,7 +15,35 @@
             <div class="subtitle">Finding the Largest Rectangle • Red Tile Corners</div>
         </div>
 
+        <a href="../index.html" class="home-link">← Calendar</a>
+        <style>
+            .home-link {
+                position: fixed;
+                top: 1rem;
+                left: 1rem;
+                z-index: 1000;
+                background: #1a0f0f;
+                color: #cc3344;
+                border: 1px solid #cc3344;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                text-decoration: none;
+                font-family: sans-serif;
+                text-transform: uppercase;
+                font-weight: bold;
+                box-shadow: 0 0 10px rgba(204, 51, 68, 0.4);
+                transition: all 0.2s;
+            }
+
+            .home-link:hover {
+                background: #cc3344;
+                color: #fff;
+                box-shadow: 0 0 20px rgba(204, 51, 68, 0.8);
+            }
+        </style>
+
         <div class="top-controls">
+
             <button id="part1Btn" class="mode-btn active-mode">🎬 Part 1</button>
             <button id="part2Btn" class="mode-btn">🎭 Part 2</button>
         </div>
