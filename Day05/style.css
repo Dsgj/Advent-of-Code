@@ -51,16 +51,13 @@ body {
   overflow: hidden;
 }
 
-header {
+.page-header {
   width: 100%;
   max-width: 1200px;
   /* Constrain width to match other designs */
   background: #222;
   padding: 10px 20px;
   border-bottom: 2px solid var(--accent-gold);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
   /* Ensure padding doesn't overflow width */
@@ -85,7 +82,8 @@ h1 {
 
 .container {
   width: 100%;
-  max-width: 900px;
+  width: 100%;
+  max-width: 1200px;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -129,7 +127,50 @@ h1 {
   letter-spacing: 1px;
   display: flex;
   justify-content: space-between;
+  justify-content: space-between;
   align-items: center;
+}
+
+/* Header Status */
+.header-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.kitchen-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #000;
+  padding: 5px 15px;
+  border: 1px solid var(--dim-text);
+  border-radius: 4px;
+}
+
+.status-text {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+.status-dot-kitchen {
+  width: 10px;
+  height: 10px;
+  background: #333;
+  border-radius: 2px; /* Square for digital look */
+}
+
+.status-dot-kitchen.active {
+  background: var(--fresh-green);
+  box-shadow: 0 0 10px var(--fresh-green);
+  animation: blink 1s infinite step-end;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }
 
 /* Grid Display */
@@ -177,7 +218,7 @@ h1 {
 .item-box.checking {
   border-color: var(--highlight);
   color: var(--highlight);
-  transform: scale(1.1);
+  transform: scale(0.9);
 }
 
 /* Range Visualization (Part 2) */
@@ -469,4 +510,127 @@ textarea {
 .input-badge.custom {
   border-color: var(--warning-orange);
   color: var(--warning-orange);
+}
+
+/* Theme-specific overrides for page-header */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.home-link {
+  justify-self: start;
+  align-self: start;
+  background: #2d3748;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+  font-family: sans-serif;
+  border-left: 4px solid #48bb78;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+}
+
+.home-link:hover {
+  transform: scale(0.95);
+  background: #4a5568;
+}
+
+/* New Layout Styles */
+.main-content {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+}
+
+.viz-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.sidebar {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.stats-panel {
+  background: rgba(45, 55, 72, 0.9);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.stats-panel .panel-title {
+  font-size: 0.7rem;
+  color: var(--fresh-green);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.stats-panel .stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-panel .stat-row:last-child {
+  border-bottom: none;
+}
+
+.stats-panel .stat-label {
+  color: var(--dim-text);
+  font-size: 0.75rem;
+}
+
+.stats-panel .stat-value {
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.stats-panel .stat-value.fresh {
+  color: var(--fresh-green);
+}
+
+.stats-panel .stat-value.spoiled {
+  color: var(--spoiled-red);
+}
+
+.control-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-buttons button {
+  width: 100%;
+  padding: 10px;
+  font-size: 0.75rem;
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.speed-control label {
+  color: var(--dim-text);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.speed-control input[type="range"] {
+  flex: 1;
 }

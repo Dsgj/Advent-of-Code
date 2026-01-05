@@ -5,124 +5,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advent of Code - Day 01 - Secret Entrance</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <a href="../index.html" class="home-link">← Calendar</a>
-    <style>
-        .home-link {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1000;
-            transition: all 0.3s;
-            background: var(--metal-mid);
-            color: var(--accent);
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            text-decoration: none;
-            font-family: 'Oswald', sans-serif;
-            border: 1px solid var(--text-color);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            text-shadow: 0 0 5px var(--glow);
-        }
-
-        .home-link:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 15px var(--glow);
-        }
-    </style>
-    <h1>🔐 SECRET VAULT CRACKER 🔐</h1>
-    <p class="subtitle">Day 1 - HQ Coordinate Triangulation System</p>
+    <header class="page-header">
+        <div class="header-row">
+            <a href="../index.html" class="home-link">← Calendar</a>
+            <div class="header-center">
+                <h1>🔐 SECRET VAULT CRACKER 🔐</h1>
+                <p class="subtitle">Day 1 - HQ Coordinate Triangulation System</p>
+            </div>
+            <div class="header-right">
+                <div class="status-panel-header">
+                    <div class="status-light" id="statusLight"></div>
+                    <span class="status-text text-glow" id="statusText">LOCKED</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-controls">
+            <button id="part1Btn" class="active">Part 1</button>
+            <button id="part2Btn">Part 2</button>
+            <button id="inputBtn">⌨ Input <span id="inputBadge" class="input-badge">EX</span></button>
+        </div>
+    </header>
 
     <div class="container">
-        <div class="safe-body">
-            <div class="dial-container" id="dialContainer">
-                <div class="dial-outer">
-                    <div class="indicator"></div>
+        <div class="main-content">
+            <div class="safe-body">
+                <div class="dial-container" id="dialContainer">
+                    <div class="dial-outer">
+                        <div class="indicator"></div>
+                    </div>
+                    <div class="dial" id="dial">
+                        <div class="dial-face" id="dialFace"></div>
+                    </div>
+                    <div class="center-hub"></div>
                 </div>
-                <div class="dial" id="dial">
-                    <div class="dial-face" id="dialFace"></div>
+            </div>
+
+            <div class="sidebar">
+                <div class="stats-panel">
+                    <div class="panel-title">Current</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Instruction</span>
+                        <span class="stat-value" id="instruction">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Position</span>
+                        <span class="stat-value" id="position">50</span>
+                    </div>
                 </div>
-                <div class="center-hub"></div>
-            </div>
-        </div>
 
-        <div class="stats">
-            <div class="stat-box">
-                <div class="stat-label">Instruction</div>
-                <div class="instruction" id="instruction">-</div>
-            </div>
-            <div class="stat-box">
+                <div class="stats-panel result-panel">
+                    <div class="panel-title" id="resultLabel">Part 1 Result</div>
+                    <div class="result-value" id="resultValue">0</div>
+                </div>
 
-                <div class="stat-label">Position</div>
-                <div class="stat-value" id="position">50</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Part 1</div>
-                <div class="stat-value zero-count" id="part1">0</div>
-            </div>
-
-            <div class="stat-box">
-                <div class="stat-label">Part 2</div>
-                <div class="stat-value zero-count" id="part2">0</div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <button id="runBtn">▶ Run</button>
-            <button id="stepBtn">⏭ Step</button>
-            <button id="resetBtn">🔄 Reset</button>
-            <button id="inputBtn">⌨ Input <span id="inputBadge" class="input-badge">EX</span></button>
-            <div class="speed-control">
-                <label>Speed:</label>
-                <input type="range" id="speed" min="10" max="500" value="200">
+                <div class="stats-panel">
+                    <div class="panel-title">Controls</div>
+                    <div class="control-buttons">
+                        <button id="runBtn">▶ Run</button>
+                        <button id="stepBtn">⏭ Step</button>
+                        <button id="resetBtn">🔄 Reset</button>
+                    </div>
+                    <div class="speed-control">
+                        <label>Speed</label>
+                        <input type="range" id="speed" min="10" max="500" value="200">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Input Modal -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal">
-            <div class="modal-header">
-                BASE PARAMETERS
-                <button class="btn-modal" id="closeModalBtn" style="padding: 4px 8px; font-size: 1rem;">×</button>
-            </div>
-            <div class="modal-body">
-                <label>Enter standard-issue coordinate instructions:</label>
-                <textarea id="modalInputArea" placeholder="L5, R1, R3, L9..."></textarea>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-modal" id="useExampleBtn">Use Example</button>
-                <button class="btn-modal btn-primary" id="useCustomBtn">Load Data</button>
-            </div>
-        </div>
-    </div>
-
+    <script src="../common.js"></script>
     <script>
         const dial = document.getElementById('dial');
         const dialFace = document.getElementById('dialFace');
         const dialContainer = document.getElementById('dialContainer');
         const positionEl = document.getElementById('position');
-        const part1El = document.getElementById('part1');
-        const part2El = document.getElementById('part2');
+        const resultValueEl = document.getElementById('resultValue');
+        const resultLabelEl = document.getElementById('resultLabel');
         const instructionEl = document.getElementById('instruction');
         const runBtn = document.getElementById('runBtn');
         const stepBtn = document.getElementById('stepBtn');
         const resetBtn = document.getElementById('resetBtn');
         const speedSlider = document.getElementById('speed');
         const inputBtn = document.getElementById('inputBtn');
-        const inputBadge = document.getElementById('inputBadge');
+        const part1Btn = document.getElementById('part1Btn');
+        const part2Btn = document.getElementById('part2Btn');
 
-        // Modal Elements
-        const inputModal = document.getElementById('inputModal');
-        const modalInputArea = document.getElementById('modalInputArea');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-        const useExampleBtn = document.getElementById('useExampleBtn');
-        const useCustomBtn = document.getElementById('useCustomBtn');
+        let currentPart = 1; // Track which part is selected
 
         const exampleData = `L68
 L30
@@ -135,23 +109,20 @@ L99
 R14
 L82`;
 
-        const STORAGE_KEY = 'day1_custom_input';
-        let currentInput = localStorage.getItem(STORAGE_KEY) || exampleData;
-        let isCustom = !!localStorage.getItem(STORAGE_KEY);
-
-        // Update Badge
-        function updateBadge() {
-            if (isCustom) {
-                inputBadge.textContent = "CUSTOM";
-                inputBadge.classList.add('custom');
-            } else {
-                inputBadge.textContent = "EX";
-                inputBadge.classList.remove('custom');
+        // Initialize Global Input Modal
+        Common.setupInputModal({
+            placeholder: 'L5, R1, R3, L9...',
+            storageKey: 'day1_custom_input',
+            exampleInput: exampleData,
+            onLoad: (data) => {
+                currentInput = data;
+                parseInstructions();
+                reset(); // Reset applies the new input
             }
-        }
-        updateBadge();
+        });
 
-
+        // Current input managed by Load callback, but need initial state
+        let currentInput = Common.getInput('day1_custom_input', exampleData);
 
         let position = 50;
         let part1Count = 0;
@@ -223,6 +194,9 @@ L82`;
                 instructions = instructions[0].split(',').map(s => s.trim());
             }
             currentIndex = 0;
+
+            // Initial instruction display
+            instructionEl.textContent = '-';
         }
 
         function reset() {
@@ -231,13 +205,64 @@ L82`;
             part2Count = 0;
             currentIndex = 0;
             isRunning = false;
+            currentRotation = -180; // Reset rotation so it doesn't spin wildly
+
+            // Re-parse current input to ensure we start fresh
+            parseInstructions();
+
             updateDial();
-            part1El.textContent = '0';
-            part2El.textContent = '0';
-            instructionEl.textContent = '-';
+            updateResult();
+
+            // Reset status text via DOM if it existed, but we may have removed it?
+            // Checking original file... statusTextEl was declared.
+            // HTML didn't show statusTextEl in viewed lines, but line 102 queried it?
+            // Ah, line 102: const statusTextEl = document.getElementById('statusText');
+            // But I removed the loop that was creating it? No, that was Dial Numbers.
+            // Wait, where is statusTextEl in HTML? Not in lines 1-76 of viewed file.
+            // It might be missing or I missed it.
+            // In reset() original: statusTextEl.textContent = 'Ready';
+            // If it doesn't exist, this will error.
+            // Checking lines 43-73 (Sidebar)... Status Panel (Current) has instruction and position.
+            // No statusText.
+            // I will remove statusTextEl reference to be safe or check if it exists.
+            // It was likely in line 102.
+
             runBtn.disabled = false;
             stepBtn.disabled = false;
+            runBtn.textContent = '▶ Run';
+            updateStatus(currentPart === 1 ? "VAULT LOCKED" : "ELEVATOR READY", 'ready');
         }
+
+        function updateStatus(text, state) {
+            const statusText = document.getElementById('statusText');
+            const statusLight = document.getElementById('statusLight');
+            if (statusText && statusLight) {
+                statusText.textContent = text;
+                statusLight.className = 'status-light ' + state;
+            }
+        }
+
+        function updateResult() {
+            resultValueEl.textContent = currentPart === 1 ? part1Count : part2Count;
+            resultLabelEl.textContent = `Part ${currentPart} Result`;
+        }
+
+        // Part toggle handlers
+        part1Btn.addEventListener('click', () => {
+            currentPart = 1;
+            part1Btn.classList.add('active');
+            part2Btn.classList.remove('active');
+            updateResult();
+            reset();
+        });
+
+        part2Btn.addEventListener('click', () => {
+            currentPart = 2;
+            part2Btn.classList.add('active');
+            part1Btn.classList.remove('active');
+            updateResult();
+            reset();
+        });
 
         let currentRotation = -180; // Starting at 50 (-180deg) matches initial position
 
@@ -275,7 +300,7 @@ L82`;
             }
 
             part2Count += passesZero;
-            part2El.textContent = part2Count;
+            updateResult();
 
             // Animate
             const duration = fastMode ? 100 : Math.max(100, 510 - speedSlider.value); // Single smooth move
@@ -292,18 +317,28 @@ L82`;
             // Check Part 1 (End position)
             if (position === 0) {
                 part1Count++;
-                part1El.textContent = part1Count;
+                updateResult();
             }
         }
 
         async function runAll() {
             if (isExecuting) return;  // Prevent starting while step is executing
 
+            if (currentIndex >= instructions.length) {
+                // stopAnimation();
+                const unlockMsg = currentPart === 1 ? `HQ LOCATED: ${part1Count}` : `BASEMENT FOUND: ${part2Count}`;
+                updateStatus(unlockMsg, 'complete');
+                runBtn.textContent = "RESTART";
+                runBtn.onclick = reset;
+                return;
+            }
+
             if (isRunning && !isPaused) {
                 // Pause
                 isPaused = true;
                 runBtn.textContent = '▶ Resume';
-                stepBtn.disabled = false;  // Enable step while paused
+                stepBtn.disabled = false;
+                updateStatus('SEQUENCE PAUSED', 'paused');
                 return;
             }
 
@@ -311,17 +346,29 @@ L82`;
                 // Resume
                 isPaused = false;
                 runBtn.textContent = '⏸ Pause';
-                stepBtn.disabled = true;  // Disable step while running
+                stepBtn.disabled = true;
+                updateStatus('ROTATING...', 'running');
                 return;
             }
+            // else { // This empty else was redundant and causing a syntax error with the following else
+            // } else { // This was the start of the duplicate logic
+            // startAnimation();
+            const runMsg = currentPart === 1 ? "TRIANGULATING..." : "FLOOR SCANNING...";
+            updateStatus(runMsg, 'running');
+            runBtn.textContent = "PAUSE";
+            // } // Closing brace for the removed duplicate else
 
             // Start fresh
-            parseInstructions();
-            reset();
+            if (currentIndex === 0) {
+                parseInstructions();
+                reset(); // Reset ensuring clean slate
+            }
+
             isRunning = true;
             isPaused = false;
             runBtn.textContent = '⏸ Pause';
             stepBtn.disabled = true;
+            updateStatus('CRACKING...', 'running');
 
             while (currentIndex < instructions.length) {
                 if (!isRunning) break;
@@ -338,6 +385,7 @@ L82`;
                     isPaused = true;
                     runBtn.textContent = '▶ Resume';
                     stepBtn.disabled = false;
+                    updateStatus(currentInput === exampleData ? "DEMO MODE" : "TIMELOCK ACTIVE", 'paused');
 
                     // Wait while paused (unless stepOnce signals to continue)
                     while (isPaused && isRunning && !stepOnce) {
@@ -357,6 +405,7 @@ L82`;
             isRunning = false;
             isPaused = false;
             instructionEl.textContent = '✓';
+            updateStatus('ACCESS GRANTED', 'complete');
             runBtn.textContent = '▶ Run';
             stepBtn.disabled = false;
         }
@@ -402,46 +451,9 @@ L82`;
         }
 
         createDialNumbers();
+        // Initial parse
+        parseInstructions();
         updateDial();
-
-        // Modal Logic
-        function openModal() {
-            modalInputArea.value = isCustom ? currentInput : '';
-            inputModal.classList.add('show');
-        }
-
-        function closeModal() {
-            inputModal.classList.remove('show');
-        }
-
-        function setCustomInput() {
-            const val = modalInputArea.value.trim();
-            if (val) {
-                currentInput = val;
-                isCustom = true;
-                localStorage.setItem(STORAGE_KEY, val);
-                updateBadge();
-                reset(); // Apply new input
-                closeModal();
-            }
-        }
-
-        function setExampleInput() {
-            currentInput = exampleData;
-            isCustom = false;
-            localStorage.removeItem(STORAGE_KEY);
-            updateBadge();
-            reset(); // Apply new input
-            closeModal();
-        }
-
-        inputBtn.addEventListener('click', openModal);
-        closeModalBtn.addEventListener('click', closeModal);
-        useCustomBtn.addEventListener('click', setCustomInput);
-        useExampleBtn.addEventListener('click', setExampleInput);
-        inputModal.addEventListener('click', (e) => {
-            if (e.target === inputModal) closeModal();
-        });
 
         runBtn.addEventListener('click', runAll);
         stepBtn.addEventListener('click', step);

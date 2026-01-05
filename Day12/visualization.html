@@ -5,366 +5,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advent of Code - Day 12 - Christmas Tree Farm</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Override for new layout */
-        main {
-            display: flex;
-            flex-direction: column;
-            max-width: 1400px;
-            gap: 0.5rem;
-            padding: 0.5rem;
-        }
 
-        header {
-            padding: 0.5rem 1rem;
-        }
-
-        header h1 {
-            font-size: 1.6rem;
-        }
-
-        .panel {
-            padding: 0.6rem;
-        }
-
-        .panel h2 {
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .top-section {
-            display: grid;
-            grid-template-columns: 1fr 220px;
-            gap: 0.5rem;
-        }
-
-        .result-banner {
-            background: linear-gradient(135deg, var(--tree-dark) 0%, var(--tree-green) 100%);
-            padding: 0.6rem 1rem;
-            border-radius: 8px;
-            text-align: center;
-            border: 2px solid var(--tree-light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .result-banner h2 {
-            font-size: 0.9rem;
-            color: var(--snow-white);
-            margin: 0;
-            border: none;
-        }
-
-        .result-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--present-gold);
-            text-shadow: 0 0 15px var(--glow-gold);
-        }
-
-        .result-sub {
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-        }
-
-        /* Progress bar */
-        .progress-container {
-            background: var(--bg-primary);
-            border-radius: 6px;
-            padding: 0.4rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .progress-bar {
-            height: 16px;
-            background: var(--bark-dark);
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--tree-green) 0%, var(--present-gold) 100%);
-            transition: width 0.1s ease;
-            border-radius: 12px;
-        }
-
-        .progress-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.85rem;
-            font-weight: bold;
-            color: var(--snow-white);
-            text-shadow: 0 0 4px black;
-        }
-
-        /* Region overview grid */
-        .region-overview {
-            display: grid;
-            gap: 1px;
-            padding: 4px;
-            background: var(--bg-primary);
-            border-radius: 6px;
-        }
-
-        .region-cell {
-            aspect-ratio: 1;
-            border-radius: 1px;
-            background: var(--bark-brown);
-            cursor: pointer;
-            transition: all 0.1s ease;
-        }
-
-        .region-cell:hover {
-            transform: scale(1.3);
-            z-index: 10;
-            border-color: var(--snow-white);
-        }
-
-        .region-cell.pending {
-            background: var(--bark-brown);
-        }
-
-        .region-cell.processing {
-            background: var(--present-gold);
-            animation: pulse 0.3s ease infinite;
-        }
-
-        .region-cell.success {
-            background: #2ecc71;
-            box-shadow: 0 0 4px #2ecc71;
-        }
-
-        .region-cell.failure {
-            background: #e74c3c;
-            box-shadow: 0 0 4px #e74c3c;
-        }
-
-        .region-cell.selected {
-            border: 2px solid var(--snow-white);
-            transform: scale(1.2);
-        }
-
-        /* Detail popup */
-        .detail-popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 1000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .detail-popup-overlay.active {
-            display: flex;
-        }
-
-        .detail-popup {
-            background: var(--bg-secondary);
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            padding: 1rem;
-            max-width: 500px;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-            transform-origin: var(--origin-x, 50%) var(--origin-y, 50%);
-            animation: popupGrow 0.25s ease-out;
-        }
-
-        @keyframes popupGrow {
-            0% {
-                transform: scale(0);
-                opacity: 0;
-            }
-
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        .detail-popup .close-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: var(--bg-tertiary);
-            border: none;
-            color: var(--text-secondary);
-            font-size: 1.2rem;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .detail-popup .close-btn:hover {
-            background: var(--present-red);
-            color: white;
-        }
-
-        .detail-popup h3 {
-            color: var(--accent);
-            font-size: 1rem;
-            margin-bottom: 0.8rem;
-            padding-right: 30px;
-        }
-
-        .detail-popup .stats-list {
-            margin-bottom: 0.8rem;
-        }
-
-        .detail-grid-container {
-            display: flex;
-            justify-content: center;
-            padding: 0.5rem;
-        }
-
-        .detail-grid {
-            display: grid;
-            gap: 1px;
-            background: var(--bark-dark);
-            padding: 3px;
-            border-radius: 6px;
-            max-width: 100%;
-            overflow: auto;
-        }
-
-        .detail-grid .cell {
-            background: var(--bark-brown);
-            border-radius: 2px;
-        }
-
-        .pieces-needed {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.3rem;
-            margin-top: 0.3rem;
-        }
-
-        .piece-tag {
-            padding: 0.2rem 0.4rem;
-            background: var(--bg-primary);
-            border-radius: 4px;
-            font-size: 0.75rem;
-            border: 1px solid var(--border);
-        }
-
-        .piece-tag span {
-            font-weight: bold;
-        }
-
-        /* Shapes mini display */
-        .shapes-mini {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            padding: 0.5rem;
-            background: var(--bg-primary);
-            border-radius: 6px;
-        }
-
-        .shape-mini {
-            display: grid;
-            gap: 1px;
-            padding: 3px;
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-        }
-
-        .shape-mini .scell {
-            width: 6px;
-            height: 6px;
-            border-radius: 1px;
-        }
-
-        .shape-mini .scell.on {
-            background: var(--present-gold);
-        }
-
-        .shape-mini .scell.off {
-            background: transparent;
-        }
-
-        /* Responsive */
-        @media (max-width: 900px) {
-
-            .top-section,
-            .detail-section {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
 </head>
 
 <body>
-    <header>
-        <h1>Christmas Tree Farm</h1>
+    <header class="page-header">
+        <div class="header-row">
+            <a href="../index.html" class="home-link">← Calendar</a>
+            <div class="header-center">
+                <h1>Christmas Tree Farm</h1>
+            </div>
+            <div class="header-right">
+                <div class="status-panel-header">
+                    <div class="status-light" id="statusLight"></div>
+                    <span class="status-text text-glow" id="statusText">AWAITING ORDER</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-controls">
+            <button id="part1Btn" class="active">Part 1</button>
+            <button id="part2Btn" disabled
+                style="opacity: 0.5; cursor: not-allowed; text-decoration: line-through;">Part 2</button>
+            <button id="inputBtn">⌨ Input</button>
+        </div>
     </header>
 
-    <a href="../index.html" class="home-link">← Calendar</a>
-    <style>
-        .home-link {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1000;
-            background: var(--tree-dark, #1a2f1a);
-            color: var(--present-gold, #f1c40f);
-            border: 2px solid var(--present-gold, #f1c40f);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            font-family: sans-serif;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            transition: all 0.2s;
-        }
-
-        .home-link:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 15px var(--present-gold, #f1c40f);
-        }
-    </style>
-
     <main>
-        <!-- Result Banner -->
-        <div class="result-banner">
-            <h2>🎁 Regions That Can Fit All Presents</h2>
-            <div class="result-number" id="result-count">—</div>
-            <div class="result-sub">of <span id="total-regions">0</span> total regions</div>
-        </div>
+        <!-- Banner Removed per user request -->
 
         <!-- Top Section: Overview + Controls -->
-        <div class="top-section">
-            <div class="panel">
-                <h2>📊 Region Overview</h2>
+        <!-- Main Content Area -->
+        <div class="content-area">
+            <div class="viz-panel">
+                <div class="panel-title">📊 Region Overview</div>
 
                 <div class="progress-container">
                     <div class="progress-bar">
                         <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
                         <span class="progress-text" id="progress-text">0 / 0</span>
                     </div>
-                </div>
-
-                <div class="controls" style="margin-bottom: 1rem;">
-                    <button id="btn-solve-all" class="btn btn-primary">▶ Solve All</button>
-                    <button id="btn-stop" class="btn btn-secondary" disabled>⏹ Stop</button>
-                    <button id="btn-load" class="btn btn-secondary">📋 Load Input</button>
                 </div>
 
                 <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
@@ -375,28 +56,38 @@
                 <div class="region-overview" id="region-overview"></div>
             </div>
 
-            <div class="panel">
-                <h2>🎁 Shapes</h2>
-                <div class="shapes-mini" id="shapes-display"></div>
+            <div class="stats-sidebar">
+                <div class="stats-panel">
+                    <h2>⚙ Controls</h2>
+                    <div class="controls" style="margin-bottom: 1rem; display: flex; flex-direction: column; gap: 8px;">
+                        <button id="btn-solve-all" class="btn btn-primary" style="width: 100%;">▶ Solve All</button>
+                        <button id="btn-stop" class="btn btn-secondary" disabled style="width: 100%;">⏹ Stop</button>
+                        <button id="btn-reset" class="btn btn-secondary" style="width: 100%;">↺ Reset</button>
+                    </div>
 
-                <h2 style="margin-top: 1rem;">📈 Statistics</h2>
-                <div class="stats-list">
-                    <div class="stat-item success">
-                        <span class="label">Can Fit ✓</span>
-                        <span id="stat-success" class="value">0</span>
-                    </div>
-                    <div class="stat-item failure">
-                        <span class="label">Cannot Fit ✗</span>
-                        <span id="stat-failure" class="value">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Processed</span>
-                        <span id="stat-processed" class="value">0</span>
+                    <h2>🎁 Shapes</h2>
+                    <div class="shapes-mini" id="shapes-display"></div>
+
+                    <h2 style="margin-top: 1rem;">📈 Statistics</h2>
+                    <div class="stats-list">
+                        <div class="stat-item success">
+                            <span class="label">Can Fit ✓</span>
+                            <span id="stat-success" class="value">0</span>
+                        </div>
+                        <div class="stat-item failure">
+                            <span class="label">Cannot Fit ✗</span>
+                            <span id="stat-failure" class="value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">Processed</span>
+                            <span id="stat-processed" class="value">0</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
+        <script src="../common.js"></script>
         <!-- Detail Popup -->
         <div class="detail-popup-overlay" id="detail-popup-overlay">
             <div class="detail-popup" id="detail-popup">
@@ -423,19 +114,6 @@
             </div>
         </div>
     </main>
-
-    <!-- Load Input Modal -->
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <h3>📋 Load Puzzle Input</h3>
-            <textarea id="input-textarea" placeholder="Paste your puzzle input here..."></textarea>
-            <div class="modal-buttons">
-                <button id="btn-use-example" class="btn btn-secondary">Use Example</button>
-                <button id="btn-cancel" class="btn btn-secondary">Cancel</button>
-                <button id="btn-apply" class="btn btn-primary">Apply</button>
-            </div>
-        </div>
-    </div>
 
     <script>
         // Example input
@@ -484,6 +162,14 @@
         let failureCount = 0;
         let selectedRegion = -1;
         let abortFlag = false;
+
+        const statusTextEl = document.getElementById('statusText');
+        const statusLightEl = document.getElementById('statusLight');
+
+        function updateStatus(text, state) {
+            statusTextEl.textContent = text;
+            statusLightEl.className = 'status-light ' + state;
+        }
 
         // Parse functions
         function parseShape(block) {
@@ -721,18 +407,68 @@
             const container = document.getElementById('region-overview');
             container.innerHTML = '';
 
-            // Calculate optimal column count - aim for a wider grid (more cols, fewer rows)
             const count = regions.length;
-            // Target: ~2:1 aspect ratio (wide), find a divisor that works
-            let cols = Math.ceil(Math.sqrt(count * 2.5));
-            // Adjust to find a divisor for perfect rows
-            while (cols > 1 && count % cols !== 0) {
-                cols++;
-            }
-            // Cap at reasonable size
-            if (cols > 200) cols = Math.ceil(Math.sqrt(count * 2.5));
+            if (count === 0) return;
 
-            container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            // Get available space
+            const maxH = 500; // Match CSS max-height
+            const containerW = container.clientWidth || container.parentElement.clientWidth || 800;
+            const gap = 4;
+
+            // Goal: Find cols such that:
+            // 1. count % cols === 0 (Rectangular grid)
+            // 2. Height <= maxH (No scroll)
+            // Height approx = rows * cell_size
+            // cell_size = (W - (cols-1)*gap) / cols
+            // rows = count / cols
+
+            // Derive required cols:
+            // rows * S <= maxH
+            // (count/cols) * (W/cols) <= maxH  (Approximating S ~= W/cols)
+            // count * W / cols^2 <= maxH
+            // cols^2 >= count * W / maxH
+            // cols >= sqrt(count * W / maxH)
+
+            const minColsByHeight = Math.ceil(Math.sqrt(count * containerW / maxH));
+
+            // Find factors of count
+            let factors = [];
+            for (let i = 1; i <= Math.sqrt(count); i++) {
+                if (count % i === 0) {
+                    factors.push(i);
+                    if (i !== count / i) factors.push(count / i);
+                }
+            }
+            factors.sort((a, b) => a - b);
+
+            // Find smallest factor >= minColsByHeight
+            let bestCols = factors.find(f => f >= minColsByHeight);
+
+            // Fallback: If no factor fits (e.g. prime or very large minCols compared to factors), 
+            // or if bestCols results in tiny cells (< 10px), maybe we accept scrolling or imperfect grid?
+            // User said "We want to see ALL". "No scroll".
+            // So we MUST satisfy Height <= maxH constraint.
+            // If bestCols doesn't exist (e.g. minCols > max_factor = count), then we have to use 'count' columns (1 row) 
+            // if we must match factor. But 1 row of 1000 items is absurd.
+
+            if (!bestCols) {
+                // Prime number or awkward dimensions?
+                // Just use the minCols calculated to fit height, even if it leaves ragged row.
+                // Or try to fit perfectly by not using factors (CSS grid auto-fill logic essentially)
+                // giving up on "equal items per row" strictness for the last row.
+                // But user specifically asked for "equal per row".
+                // "om det inte är ett primtal" -> implies if composite, we MUST do equal.
+                // So if composite, bestCols SHOULD be found unless minCols is huge.
+                // For N=1000, minCols ~ sqrt(1000*300/500) = sqrt(600) = 24.
+                // Factors of 1000: ... 20, 25, 40 ...
+                // 25 >= 24. So 25 cols. 40 rows. 
+                // Cell size W/25. If W=300, S=12px. H=40*12=480 < 500. Perfect.
+
+                // If we failed to find factor (e.g. prime), fallback to minCols to ensure fit.
+                bestCols = minColsByHeight;
+            }
+
+            container.style.gridTemplateColumns = `repeat(${bestCols}, 1fr)`;
 
             regions.forEach((region, idx) => {
                 const cell = document.createElement('div');
@@ -740,7 +476,10 @@
                 cell.title = `Region ${idx + 1}: ${region.width}x${region.height}`;
                 cell.dataset.index = idx;
                 if (idx === selectedRegion) cell.classList.add('selected');
-                cell.onclick = () => selectRegion(idx);
+
+                // Add click handler
+                cell.onclick = (e) => selectRegion(idx, e);
+
                 container.appendChild(cell);
             });
 
@@ -756,7 +495,6 @@
             document.getElementById('stat-success').textContent = successCount;
             document.getElementById('stat-failure').textContent = failureCount;
             document.getElementById('stat-processed').textContent = processed;
-            document.getElementById('result-count').textContent = successCount;
         }
 
         function updateCell(idx, status) {
@@ -881,6 +619,8 @@
             abortFlag = false;
             document.getElementById('btn-solve-all').disabled = true;
             document.getElementById('btn-stop').disabled = false;
+            // Part 2 is disabled in Day 12 anyway, but good practice
+            updateStatus("PROCESSING BATCH...", "running");
 
             const batchSize = 5;
 
@@ -913,50 +653,83 @@
             isRunning = false;
             document.getElementById('btn-solve-all').disabled = false;
             document.getElementById('btn-stop').disabled = true;
+            updateStatus("BATCH COMPLETE", "complete");
+        }
+
+        function resetVisualization() {
+            isRunning = false;
+            // grid = []; // Don't wipe grid reference, just clear logic? 
+            // Actually regenerate grid from input
+            // solve(currentInput); // This line seems to be from a different context, removing it.
+            updateStatus("AWAITING ORDER", "ready");
         }
 
         function stopSolving() {
             abortFlag = true;
+            updateStatus("HALTED", "paused");
         }
 
         // Event handlers
         document.getElementById('btn-solve-all').onclick = solveAll;
         document.getElementById('btn-stop').onclick = stopSolving;
+        document.getElementById('btn-reset').onclick = () => {
+            // Stop any running process
+            stopSolving();
+            isRunning = false;
+            document.getElementById('btn-solve-all').disabled = false;
+            document.getElementById('btn-stop').disabled = true;
 
-        // Popup close handlers
+            // Reset State
+            results = regions.map(() => 'pending');
+            successCount = 0;
+            failureCount = 0;
+            currentIndex = 0;
+            selectedRegion = -1;
+
+            // Reset UI
+            renderOverview(); // Re-render grid to clear classes
+            updateProgress();
+
+            // Close any open popup
+            closePopup();
+        };
+
+        // Popup close handlers (Region Details)
         document.getElementById('close-popup').onclick = closePopup;
         document.getElementById('detail-popup-overlay').onclick = (e) => {
             if (e.target === e.currentTarget) closePopup();
         };
 
-        document.getElementById('btn-load').onclick = () => {
-            document.getElementById('modal').classList.add('active');
-            const saved = localStorage.getItem('day12-input');
-            if (saved) {
-                document.getElementById('input-textarea').value = saved;
+        // --- Standard Input Modal Handlers ---
+        Common.setupInputModal({
+            placeholder: 'Paste your Christmas Tree Farm grid (e.g., RRRRIICCFF...)',
+            storageKey: 'day12-input',
+            exampleInput: EXAMPLE_INPUT,
+            onLoad: (input) => {
+                // Reset and Process
+                parseInput(input);
+                renderShapes();
+                renderOverview();
+                updateProgress();
+
+                // Clean up any open detail views
+                document.getElementById('detail-popup-overlay').style.display = 'none';
             }
-        };
+        });
 
-        document.getElementById('btn-use-example').onclick = () => {
-            document.getElementById('input-textarea').value = EXAMPLE_INPUT;
-        };
+        // Part Buttons
+        const p1Btn = document.getElementById('part1Btn');
+        const p2Btn = document.getElementById('part2Btn');
 
-        document.getElementById('btn-cancel').onclick = () => {
-            document.getElementById('modal').classList.remove('active');
-        };
+        // Disable Part 2 explicitly via JS as well, just in case
+        p2Btn.disabled = true;
+        p2Btn.style.opacity = '0.5';
+        p2Btn.style.cursor = 'not-allowed';
 
-        document.getElementById('btn-apply').onclick = () => {
-            const input = document.getElementById('input-textarea').value;
-            localStorage.setItem('day12-input', input);
+        p1Btn.addEventListener('click', () => {
+            // Already active, do nothing or reset
+        });
 
-            parseInput(input);
-            renderShapes();
-            renderOverview();
-            updateProgress();
-
-            document.getElementById('detail-section').style.display = 'none';
-            document.getElementById('modal').classList.remove('active');
-        };
 
         // Init
         function init() {

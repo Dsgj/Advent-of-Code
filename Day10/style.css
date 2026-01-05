@@ -227,18 +227,87 @@ textarea:focus {
 /* Page Layout */
 .main-container {
   width: 100%;
-  max-width: 1400px;
+  max-width: 1200px;
   height: calc(100vh - 40px);
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
+/* Theme-specific overrides for page-header */
 .page-header {
-  text-align: center;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.page-header h1 {
+/* Header Status */
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.factory-status {
+  background: var(--metal-surface);
+  border: 2px solid var(--amber-warning);
+  padding: 6px 16px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Hazard stripe background slightly? */
+  background: repeating-linear-gradient(
+    45deg,
+    var(--metal-surface) 25%,
+    #333 25%,
+    #333 50%,
+    var(--metal-surface) 50%,
+    var(--metal-surface) 75%,
+    #333 75%,
+    #333 100%
+  );
+  background-size: 20px 20px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.factory-status .status-text {
+  font-family: var(--font-display);
+  color: var(--amber-warning);
+  font-size: 0.9rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.status-light-factory {
+  width: 14px;
+  height: 14px;
+  background: #333;
+  border-radius: 50%;
+  border: 2px solid #555;
+  transition: all 0.2s;
+}
+
+.status-light-factory.active {
+  background: var(--indicator-green);
+  border-color: #fff;
+  box-shadow: 0 0 10px var(--indicator-green);
+  animation: strobe 0.5s infinite;
+}
+
+@keyframes strobe {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
+
+.header-center h1 {
   font-size: 2rem;
   font-family: var(--font-display);
   color: var(--amber-warning);
@@ -246,7 +315,7 @@ textarea:focus {
   margin-bottom: 4px;
 }
 
-.page-header .subtitle {
+.header-center .subtitle {
   font-size: 0.85rem;
   color: var(--text-dim);
 }
@@ -677,4 +746,23 @@ textarea:focus {
     flex: 1;
     min-width: 200px;
   }
+}
+
+.home-link {
+  justify-self: start;
+  background: #2d2b55;
+  color: #fad000;
+  border: 2px solid #fad000;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+  font-family: sans-serif;
+  box-shadow: 0 4px 0 #b39500;
+  transition: all 0.1s;
+}
+
+.home-link:hover {
+  transform: scale(0.95);
+  box-shadow: 0 2px 0 #b39500;
 }

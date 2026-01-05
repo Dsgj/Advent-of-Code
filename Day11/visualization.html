@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advent of Code - Day 11 - Reactor</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <!-- Optional for icons if needed, but we use text -->
@@ -12,41 +13,25 @@
 
 <body>
     <div id="app">
-        <a href="../index.html" class="home-link">← Calendar</a>
-        <style>
-            .home-link {
-                position: fixed;
-                top: 1rem;
-                left: 1rem;
-                z-index: 1000;
-                background: rgba(0, 20, 0, 0.9);
-                color: var(--reactor-cyan);
-                border: 1px solid var(--reactor-cyan);
-                padding: 0.5rem 1rem;
-                border-radius: 2px;
-                text-decoration: none;
-                font-family: "Share Tech Mono", monospace;
-                text-transform: uppercase;
-                box-shadow: 0 0 10px var(--reactor-cyan);
-                transition: all 0.3s;
-            }
-
-            .home-link:hover {
-                background: var(--reactor-cyan);
-                color: #000;
-                box-shadow: 0 0 20px var(--reactor-cyan);
-            }
-        </style>
         <!-- Header -->
-        <header>
-            <div style="display:flex; align-items:center; gap:15px;">
-
-                <h1>Reactor Core 11</h1>
-                <div class="system-status">System Status: <span id="sys-status">ONLINE</span></div>
+        <header class="page-header">
+            <div class="header-row">
+                <a href="../index.html" class="home-link">← Calendar</a>
+                <div class="header-center">
+                    <h1>Reactor Core 11</h1>
+                    <div id="clock" style="font-size:0.8rem; color:var(--reactor-dim); margin-top:5px;">00:00:00</div>
+                </div>
+                <div class="header-right">
+                    <div class="status-panel-header">
+                        <div class="status-light" id="statusLight"></div>
+                        <span class="status-text text-glow" id="statusText">ONLINE</span>
+                    </div>
+                </div>
             </div>
-            <div style="text-align: right; font-size: 0.8rem; color: var(--reactor-dim);">
-                <div>SECURE CONNECTION</div>
-                <div id="clock">00:00:00</div>
+            <div class="header-controls">
+                <button id="part1Btn" class="active">Part 1</button>
+                <button id="part2Btn">Part 2</button>
+                <button id="inputBtn">⌨ Input</button>
             </div>
         </header>
 
@@ -122,49 +107,29 @@
                     </div>
                 </div>
 
-            </div>
-        </div>
-
-        <!-- Bottom Controls -->
-        <div class="controls-area">
-            <div class="control-group">
-                <button id="btn-load-input">📥 Load Input</button>
-                <div style="width: 1px; background: var(--reactor-dim); margin: 0 10px;"></div>
-                <div class="control-group" style="gap: 5px;">
-                    <button id="btn-part1" class="active-mode">Part 1</button>
-                    <button id="btn-part2">Part 2</button>
+                <!-- Control Panel -->
+                <div class="panel-block">
+                    <h3>Reactor Controls</h3>
+                    <div class="control-group-vertical">
+                        <button id="btn-run">INITIATE SEQUENCE</button>
+                        <button id="btn-step">STEP</button>
+                        <button id="btn-reset">RESET</button>
+                    </div>
+                    <div class="speed-control" style="margin-top: 15px;">
+                        <label>PROCESSING SPEED</label>
+                        <input type="range" id="speed-slider" min="1" max="100" value="50">
+                    </div>
                 </div>
-            </div>
 
-            <div class="control-group">
-                <button id="btn-reset">RESET</button>
-                <button id="btn-step">STEP</button>
-                <button id="btn-run">INITIATE SEQUENCE</button>
-            </div>
-
-            <div class="speed-control">
-                <label>PROCESSING SPEED</label>
-                <input type="range" id="speed-slider" min="1" max="100" value="50">
             </div>
         </div>
+
+
     </div>
 
-    <!-- Modal -->
-    <div id="input-modal" class="modal">
-        <div class="modal-content">
-            <h2>Search Input Terminal</h2>
-            <div class="modal-buttons" style="margin-bottom: 15px;">
-                <button id="btn-use-example-1">Protocol Alpha (Ex 1)</button>
-                <button id="btn-use-example-2">Protocol Beta (Ex 2)</button>
-            </div>
-            <textarea id="input-area" placeholder="Enter adjacency stream..."></textarea>
-            <div class="modal-buttons" style="justify-content: flex-end; gap: 10px; display: flex;">
-                <button id="btn-cancel-input">ABORT</button>
-                <button id="btn-save-input">UPLOAD</button>
-            </div>
-        </div>
-    </div>
+    <!-- Input Modal handled by common.js -->
 
+    <script src="../common.js"></script>
     <script>
         // --- State Management ---
         const state = {
@@ -226,21 +191,16 @@
             document.getElementById('btn-run').onclick = toggleRun;
             document.getElementById('btn-step').onclick = step;
             document.getElementById('btn-reset').onclick = resetSimulation;
-            document.getElementById('btn-part1').onclick = () => setPart(1);
-            document.getElementById('btn-part2').onclick = () => setPart(2);
+            document.getElementById('part1Btn').onclick = () => setPart(1);
+            document.getElementById('part2Btn').onclick = () => setPart(2);
             document.getElementById('speed-slider').value = state.speed; // Sync slider
             document.getElementById('speed-slider').oninput = (e) => state.speed = parseInt(e.target.value);
 
-            // Modal
-            const modal = document.getElementById('input-modal');
-            document.getElementById('btn-load-input').onclick = () => modal.classList.add('show');
-            document.getElementById('btn-cancel-input').onclick = () => modal.classList.remove('show');
-            document.getElementById('btn-save-input').onclick = () => {
-                loadInput(document.getElementById('input-area').value);
-                modal.classList.remove('show');
-            };
-            document.getElementById('btn-use-example-1').onclick = () => {
-                document.getElementById('input-area').value = `aaa: you hhh
+            // Modal Handling
+            Common.setupInputModal({
+                placeholder: 'aaa: you hhh\nyou: bbb ccc...',
+                storageKey: 'day11_input', // Checking storage key usage
+                exampleInput: `aaa: you hhh
 you: bbb ccc
 bbb: ddd eee
 ccc: ddd eee fff
@@ -249,23 +209,11 @@ eee: out
 fff: out
 ggg: out
 hhh: ccc fff iii
-iii: out`;
-            };
-            document.getElementById('btn-use-example-2').onclick = () => {
-                document.getElementById('input-area').value = `svr: aaa bbb
-aaa: fft
-fft: ccc
-bbb: tty
-tty: ccc
-ccc: ddd eee
-ddd: hub
-hub: fff
-eee: dac
-dac: fff
-fff: ggg hhh
-ggg: out
-hhh: out`;
-            };
+iii: out`,
+                onLoad: (data) => {
+                    loadInput(data);
+                }
+            });
         }
 
         function setPart(p) {
@@ -396,7 +344,8 @@ hhh: out`;
                 if (realStart === 'fft') state.queue[0].keys.add('fft');
             }
 
-            document.getElementById('sys-status').innerText = 'READY';
+            const statusMsg = currentPart === 1 ? 'REACTOR ONLINE' : 'HYPER-DRIVE ENGAGED';
+            updateStatus(statusMsg, 'ready');
             document.getElementById('btn-run').innerText = "INITIATE SEQUENCE";
             updateStats();
             draw();
@@ -413,6 +362,8 @@ hhh: out`;
                 lastTime = timestamp;
 
                 if (state.isRunning) {
+                    // Status light handled by CSS animation in 'running' state
+
                     // Speed 1-100. Lower is slower.
                     // Interval range: 1000ms (speed 1) down to 10ms (speed 100)?
                     // We want step-by-step visibility at low speeds. 
@@ -459,7 +410,7 @@ hhh: out`;
         function handleComplete() {
             state.isRunning = false;
             document.getElementById('btn-run').innerText = "SEQUENCE COMPLETE";
-            document.getElementById('sys-status').innerText = 'COMPLETE';
+            updateStatus('STABILIZED', 'complete');
             if (state.queue.length === 0) document.getElementById('stat-activity').innerText = 'FINISHED';
         }
 
@@ -467,11 +418,12 @@ hhh: out`;
             if (state.isRunning) {
                 state.isRunning = false;
                 document.getElementById('btn-run').innerText = "RESUME SEQUENCE";
-                document.getElementById('sys-status').innerText = 'PAUSED';
+                updateStatus('SEQUENCE INTERRUPTED', 'paused');
             } else {
                 state.isRunning = true;
                 document.getElementById('btn-run').innerText = "HALT SEQUENCE";
-                document.getElementById('sys-status').innerText = 'PROCESSING...';
+                const runMsg = state.part === 2 ? 'CHARGING CORE...' : 'SEQUENCE INITIATED';
+                updateStatus(runMsg, 'running');
             }
         }
 
@@ -559,6 +511,13 @@ hhh: out`;
                 dacSlot.classList.remove('active');
                 fftSlot.classList.remove('active');
             }
+        }
+
+        function updateStatus(text, state) {
+            const el = document.getElementById('statusText');
+            const light = document.getElementById('statusLight');
+            if (el) el.innerText = text;
+            if (light) light.className = 'status-light ' + state;
         }
 
         function draw() {

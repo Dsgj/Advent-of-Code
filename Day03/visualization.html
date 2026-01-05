@@ -5,144 +5,115 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advent of Code - Day 03 - Lobby</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <a href="../index.html" class="home-link">← Calendar</a>
-    <style>
-        .home-link {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1000;
-            background: rgba(18, 20, 31, 0.9);
-            color: var(--battery-gold);
-            border: 1px solid var(--battery-gold);
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            text-decoration: none;
-            font-family: 'Orbitron', sans-serif;
-            text-transform: uppercase;
-            box-shadow: 0 0 10px var(--battery-glow);
-            font-size: 0.8rem;
-            transition: all 0.3s;
-        }
-
-        .home-link:hover {
-            background: var(--battery-gold);
-            color: #12141f;
-            box-shadow: 0 0 20px var(--battery-glow);
-        }
-    </style>
-    <h1>⚡ ESCALATOR POWER STATION ⚡</h1>
-    <p class="subtitle">Day 3 - Emergency Battery Bank Optimizer</p>
+    <header class="page-header">
+        <div class="header-row">
+            <a href="../index.html" class="home-link">← Calendar</a>
+            <div class="header-center">
+                <h1>⚡ ESCALATOR POWER STATION ⚡</h1>
+                <p class="subtitle">Day 3 - Emergency Battery Bank Optimizer</p>
+            </div>
+            <div class="header-right">
+                <div class="status-panel-header">
+                    <div class="status-light" id="statusIndicator"></div>
+                    <span class="status-text text-glow" id="statusText">GENERATORS LOW</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-controls">
+            <button id="part1Btn" class="active">Part 1</button>
+            <button id="part2Btn">Part 2</button>
+            <button id="inputBtn">⌨ Input <span id="inputBadge" class="input-badge">EX</span></button>
+        </div>
+    </header>
 
     <div class="container">
-        <div class="controls">
-            <div class="part-toggle">
-                <button id="part1Btn" class="active">Part 1 (2 batteries)</button>
-                <button id="part2Btn">Part 2 (12 batteries)</button>
-            </div>
-        </div>
+        <div class="main-content">
+            <div class="viz-area">
+                <div class="bank-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">▸ BATTERY BANK</span>
+                        <span class="bank-number" id="bankNumber">Bank 1 of 4</span>
+                    </div>
+                    <div class="battery-grid" id="batteryGrid">
+                        <!-- Batteries will be dynamically inserted -->
+                    </div>
+                    <div class="result-display">
+                        <span class="result-label">MAX JOLTAGE:</span>
+                        <span class="result-value" id="bankJoltage">--</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
 
-        <div class="bank-panel">
-            <div class="panel-header">
-                <span class="panel-title">▸ BATTERY BANK</span>
-                <span class="bank-number" id="bankNumber">Bank 1 of 4</span>
+                <div class="bank-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">▸ ALGORITHM TRACE</span>
+                    </div>
+                    <div class="algorithm-panel" id="algorithmPanel">
+                        <div class="algorithm-step" id="step1">1. For each position as potential first digit...</div>
+                        <div class="algorithm-step" id="step2">2. Find maximum digit in remaining valid range...</div>
+                        <div class="algorithm-step" id="step3">3. Add to result and advance position...</div>
+                        <div class="algorithm-step" id="step4">4. Repeat until N digits selected</div>
+                        <div class="legend">
+                            <span class="legend-item"><span class="legend-color candidate"></span> Valid range</span>
+                            <span class="legend-item"><span class="legend-color scanning"></span> Scanning</span>
+                            <span class="legend-item"><span class="legend-color best-so-far"></span> Best found</span>
+                            <span class="legend-item"><span class="legend-color selected"></span> Selected</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="battery-grid" id="batteryGrid">
-                <!-- Batteries will be dynamically inserted -->
-            </div>
-            <div class="result-display">
-                <span class="result-label">MAX JOLTAGE:</span>
-                <span class="result-value" id="bankJoltage">--</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-        </div>
 
-        <div class="bank-panel">
-            <div class="panel-header">
-                <span class="panel-title">▸ ALGORITHM TRACE</span>
-            </div>
-            <div class="algorithm-panel" id="algorithmPanel">
-                <div class="algorithm-step" id="step1">1. For each position as potential first digit...</div>
-                <div class="algorithm-step" id="step2">2. Find maximum digit in remaining valid range...</div>
-                <div class="algorithm-step" id="step3">3. Add to result and advance position...</div>
-                <div class="algorithm-step" id="step4">4. Repeat until N digits selected</div>
-                <div class="legend">
-                    <span class="legend-item"><span class="legend-color candidate"></span> Valid range</span>
-                    <span class="legend-item"><span class="legend-color scanning"></span> Scanning</span>
-                    <span class="legend-item"><span class="legend-color best-so-far"></span> Best found</span>
-                    <span class="legend-item"><span class="legend-color selected"></span> Selected</span>
+            <div class="sidebar">
+                <div class="stats-panel">
+                    <div class="panel-title">⚡ POWER STATISTICS</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Current Bank</span>
+                        <span class="stat-value" id="currentBank">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Banks Processed</span>
+                        <span class="stat-value" id="banksProcessed">0 / 0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Bank Joltage</span>
+                        <span class="stat-value gold" id="currentJoltage">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Total Joltage</span>
+                        <span class="stat-value gold" id="totalJoltage">0</span>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="bank-panel">
-            <div class="panel-header">
-                <span class="panel-title">▸ POWER STATISTICS</span>
-            </div>
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-label">Current Bank</div>
-                    <div class="stat-value" id="currentBank">0</div>
+                <div class="stats-panel">
+                    <div class="panel-title">⚙ CONTROLS</div>
+                    <div class="control-buttons">
+                        <button id="runBtn">▶ RUN</button>
+                        <button id="stepBtn">⏭ STEP</button>
+                        <button id="resetBtn">↺ RESET</button>
+                    </div>
+                    <div class="speed-control">
+                        <label>Speed</label>
+                        <input type="range" id="speedSlider" min="1" max="100" value="50">
+                    </div>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-label">Banks Processed</div>
-                    <div class="stat-value" id="banksProcessed">0 / 0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Bank Joltage</div>
-                    <div class="stat-value gold" id="currentJoltage">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Total Joltage</div>
-                    <div class="stat-value gold" id="totalJoltage">0</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <button id="runBtn">▶ RUN</button>
-            <button id="stepBtn">⏭ STEP</button>
-            <button id="resetBtn">↺ RESET</button>
-            <button id="inputBtn">INPUT <span id="inputBadge" class="input-badge">EX</span></button>
-            <div class="speed-control">
-                <label>Speed:</label>
-                <input type="range" id="speedSlider" min="1" max="100" value="50">
             </div>
         </div>
     </div>
 
-    <!-- Input Modal -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal">
-            <div class="modal-header">
-                BATTERY BANK CONFIG
-                <button class="btn-modal" id="closeModalBtn" style="padding: 0 8px;">×</button>
-            </div>
-            <div class="modal-body">
-                <label>Enter new battery bank parameters:</label>
-                <textarea id="modalInputArea" placeholder="9876543210..."></textarea>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-modal" id="useExampleBtn">Use Example</button>
-                <button class="btn-modal btn-primary" id="useCustomBtn">Load Data</button>
-            </div>
-        </div>
-    </div>
-
+    <script src="../common.js"></script>
     <script>
         // Example input from the puzzle
         const EXAMPLE_INPUT = `987654321111111
 811111111111119
 234234234234278
 818181911112111`;
-
-
 
         // State
         let banks = [];
@@ -170,18 +141,26 @@
         const part1Btn = document.getElementById('part1Btn');
         const part2Btn = document.getElementById('part2Btn');
         const algorithmSteps = document.querySelectorAll('.algorithm-step');
-
-        // Modal Elements
-        const inputBtn = document.getElementById('inputBtn');
         const inputBadge = document.getElementById('inputBadge');
-        const inputModal = document.getElementById('inputModal');
-        const modalInputArea = document.getElementById('modalInputArea');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-        const useExampleBtn = document.getElementById('useExampleBtn');
-        const useCustomBtn = document.getElementById('useCustomBtn');
+        const statusTextEl = document.getElementById('statusText'); // Assuming this is the one in the header
+        const statusIndicatorEl = document.getElementById('statusIndicator'); // Assuming this is the one in the header
 
         const STORAGE_KEY = 'day3_custom_input';
-        let currentInput = localStorage.getItem(STORAGE_KEY) || EXAMPLE_INPUT;
+
+        // Initialize Global Input Modal
+        Common.setupInputModal({
+            placeholder: '9876543210...',
+            storageKey: STORAGE_KEY,
+            exampleInput: EXAMPLE_INPUT,
+            onLoad: (data) => {
+                currentInput = data;
+                isCustom = true;
+                updateBadge();
+                init();
+            }
+        });
+
+        let currentInput = Common.getInput(STORAGE_KEY, EXAMPLE_INPUT);
         let isCustom = !!localStorage.getItem(STORAGE_KEY);
 
         function updateBadge() {
@@ -496,15 +475,25 @@
                     runBtn.textContent = '▶ RUN';
                     highlightAlgorithmStep(-1);
                     bankJoltageEl.textContent = '✓ DONE';
+                    updateStatus('MAX OUTPUT', 'complete');
                     break;
             }
 
             return true;
         }
 
+        function updateStatus(text, state) {
+            if (statusTextEl) statusTextEl.textContent = text;
+            if (statusIndicatorEl) {
+                statusIndicatorEl.className = 'status-light ' + state;
+            }
+        }
+
         function runAnimation() {
             if (processStep()) {
                 animationTimeout = setTimeout(runAnimation, getDelay());
+            } else {
+                // This block is now handled by the 'complete' case in processStep
             }
         }
 
@@ -531,8 +520,12 @@
             totalJoltageEl.textContent = '0';
             bankJoltageEl.textContent = '--';
             progressFill.style.width = '0%';
+            progressFill.style.width = '0%';
             runBtn.textContent = '▶ RUN';
             highlightAlgorithmStep(-1);
+            const startMsg = currentPart === 1 ? 'POWER LOW' : 'GRID UNSTABLE';
+            updateStatus(startMsg, 'ready');
+
 
             if (banks.length > 0) {
                 renderBatteries(banks[0]);
@@ -549,6 +542,7 @@
                     animationTimeout = null;
                 }
                 runBtn.textContent = '▶ RUN';
+                updateStatus('MANUAL OVERRIDE', 'paused');
             } else {
                 // Start/Resume
                 if (queueIndex >= animationQueue.length) {
@@ -556,6 +550,8 @@
                 }
                 isRunning = true;
                 runBtn.textContent = '⏸ PAUSE';
+                const runMsg = currentPart === 1 ? 'SURGING...' : 'BALANCING GRID...';
+                updateStatus(runMsg, 'running');
                 runAnimation();
             }
         });
@@ -602,44 +598,7 @@
             }
         });
 
-        // Modal Logic
-        function openModal() {
-            modalInputArea.value = isCustom ? currentInput : '';
-            inputModal.classList.add('show');
-        }
-
-        function closeModal() {
-            inputModal.classList.remove('show');
-        }
-
-        function setCustomInput() {
-            const val = modalInputArea.value.trim();
-            if (val) {
-                currentInput = val;
-                isCustom = true;
-                localStorage.setItem(STORAGE_KEY, val);
-                updateBadge();
-                closeModal();
-                init();
-            }
-        }
-
-        function setExampleInput() {
-            currentInput = EXAMPLE_INPUT;
-            isCustom = false;
-            localStorage.removeItem(STORAGE_KEY);
-            updateBadge();
-            closeModal();
-            init();
-        }
-
-        inputBtn.addEventListener('click', openModal);
-        closeModalBtn.addEventListener('click', closeModal);
-        useCustomBtn.addEventListener('click', setCustomInput);
-        useExampleBtn.addEventListener('click', setExampleInput);
-        inputModal.addEventListener('click', (e) => {
-            if (e.target === inputModal) closeModal();
-        });
+        // Modal Logic handled by common.js
 
         // Initialize with example
         init();

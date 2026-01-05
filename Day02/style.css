@@ -56,9 +56,9 @@ body {
   z-index: 100;
 }
 
+/* Theme-specific overrides for header */
 .header {
-  text-align: center;
-  padding: 8px 0;
+  padding: 8px 10px;
   border-bottom: 2px solid var(--crt-dim);
 }
 
@@ -404,6 +404,11 @@ body {
   font-size: 10px;
 }
 
+.page-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
 .complete-banner {
   background: var(--crt-green);
   color: var(--crt-dark);
@@ -436,79 +441,7 @@ body {
   box-shadow: 0 0 8px var(--crt-glow);
 }
 
-/* Input Modal */
-.modal-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 200;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-overlay.show {
-  display: flex;
-}
-
-.modal {
-  background: var(--crt-bg);
-  border: 2px solid var(--crt-dim);
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  padding: 10px;
-  border-bottom: 1px solid var(--crt-dim);
-  color: var(--crt-green);
-  font-size: 12px;
-}
-
-.modal-body {
-  padding: 15px;
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-body label {
-  color: var(--crt-dim);
-  font-size: 10px;
-  margin-bottom: 8px;
-  display: block;
-}
-
-.modal-body textarea {
-  flex: 1;
-  min-height: 200px;
-  background: var(--crt-dark);
-  border: 1px solid var(--crt-dim);
-  color: var(--crt-green);
-  font-family: "Courier New", monospace;
-  font-size: 11px;
-  padding: 10px;
-  resize: none;
-}
-
-.modal-body textarea:focus {
-  outline: 1px solid var(--crt-green);
-}
-
-.modal-footer {
-  padding: 10px;
-  border-top: 1px solid var(--crt-dim);
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
+/* Input Modal styles removed (using common.css) */
 
 .input-indicator {
   font-size: 9px;
@@ -531,4 +464,80 @@ body {
 
 .speed-row input {
   flex: 1;
+}
+
+.header-center {
+  text-align: center;
+}
+
+.header-right {
+  justify-self: end;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+}
+
+.status-bracket {
+  color: var(--crt-dim);
+}
+
+.status-label {
+  color: var(--crt-green);
+  margin-right: 8px;
+  margin-left: 5px;
+}
+
+.status-value {
+  color: var(--crt-green);
+  font-weight: bold;
+  text-shadow: 0 0 5px var(--crt-glow);
+}
+
+.status-value.blink {
+  animation: crt-blink 1s steps(2, start) infinite;
+}
+
+@keyframes crt-blink {
+  to {
+    opacity: 0;
+  }
+}
+
+.home-link {
+  justify-self: start;
+  align-self: start;
+  color: var(--crt-green);
+  background: rgba(0, 20, 0, 0.9);
+  padding: 8px 12px;
+  text-decoration: none;
+  font-family: "Courier New", monospace;
+  border: 1px solid var(--crt-green);
+  text-shadow: 0 0 5px var(--crt-dim);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.home-link:hover {
+  background: var(--crt-green);
+  color: #000;
+  box-shadow: 0 0 15px var(--crt-green);
+  transform: scale(0.95);
+}
+
+/* Sidebar control buttons */
+.control-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.control-buttons .btn {
+  width: 100%;
+  padding: 8px;
+  font-size: 12px;
 }

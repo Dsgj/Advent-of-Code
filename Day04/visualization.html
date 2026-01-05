@@ -5,76 +5,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advent of Code - Day 04 - Print Shop</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <a href="../index.html" class="home-link">← Calendar</a>
-    <style>
-        .home-link {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.8);
-            color: var(--accent);
-            border: 1px solid var(--accent);
-            padding: 0.5rem 1rem;
-            text-decoration: none;
-            font-family: 'Orbitron', sans-serif;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            transition: all 0.2s;
-            border-radius: 4px;
-        }
-
-        .home-link:hover {
-            background: var(--accent);
-            color: #000;
-            box-shadow: 0 0 15px var(--accent);
-        }
-    </style>
-    <header>
-        <h1>PRINT SHOP OPTIMIZER</h1>
-        <div class="controls">
-            <button id="inputBtn">Input <span id="inputBadge" class="input-badge">EX</span></button>
-            <button id="runPart1">Run Part 1</button>
-            <button id="runPart2">Run Part 2</button>
+    <header class="page-header">
+        <div class="header-row">
+            <a href="../index.html" class="home-link">← Calendar</a>
+            <div class="header-center">
+                <h1>PRINT SHOP OPTIMIZER</h1>
+            </div>
+            <div class="header-right">
+                <div class="status-panel-header">
+                    <div class="status-light" id="statusLight"></div>
+                    <span class="status-text text-glow" id="statusText">FORKLIFTS IDLE</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-controls">
+            <button id="part1Btn" class="active">Part 1</button>
+            <button id="part2Btn">Part 2</button>
+            <button id="inputBtn">⌨ Input <span id="inputBadge" class="input-badge">EX</span></button>
         </div>
     </header>
 
     <div id="main-layout">
-        <!-- Input Panel Removed -->
+        <div class="main-content">
+            <div class="viz-area">
+                <div id="grid-wrapper">
+                    <div id="grid-container"></div>
+                </div>
+            </div>
 
-        <div id="stats-bar">
-            <div class="stat-item">QUEUE: <span id="queueSize">0</span></div>
-            <div class="stat-item">REMOVED: <span id="removedCount">0</span></div>
-            <div class="stat-item">STATUS: <span id="statusText">IDLE</span></div>
-        </div>
+            <div class="sidebar">
+                <div class="stats-panel">
+                    <div class="panel-title">📊 STATUS</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Queue</span>
+                        <span class="stat-value" id="queueSize">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Removed</span>
+                        <span class="stat-value" id="removedCount">0</span>
+                    </div>
+                    <span class="stat-value" id="removedCount">0</span>
+                </div>
+            </div>
 
-        <div id="grid-wrapper">
-            <div id="grid-container"></div>
+            <div class="stats-panel">
+                <div class="panel-title">⚙ CONTROLS</div>
+                <div class="control-buttons">
+                    <button id="runBtn">▶ Run</button>
+                    <button id="stepBtn">⏭ Step</button>
+                    <button id="resetBtn">🔄 Reset</button>
+                </div>
+                <div class="speed-control">
+                    <label>Speed</label>
+                    <input type="range" id="speedSlider" min="1" max="100" value="50">
+                </div>
+            </div>
         </div>
     </div>
-
-    <!-- Input Modal -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal">
-            <div class="modal-header">
-                PUZZLE INPUT
-                <button class="btn-modal" id="closeModalBtn">×</button>
-            </div>
-            <div class="modal-body">
-                <label>Paste your puzzle input below:</label>
-                <textarea id="modalInputArea" placeholder="..@@.@@@@..."></textarea>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-modal" id="useExampleBtn">Use Example</button>
-                <button class="btn-modal btn-primary" id="useCustomBtn">Load Data</button>
-            </div>
-        </div>
     </div>
 
+    <!-- Common JS -->
+    <script src="../common.js"></script>
     <script>
         const EXAMPLE_INPUT = `..@@.@@@@.
 @@@.@.@.@@
@@ -92,15 +88,24 @@
         const queueSizeEl = document.getElementById('queueSize');
         const removedCountEl = document.getElementById('removedCount');
         const statusTextEl = document.getElementById('statusText');
+        const statusLightEl = document.getElementById('statusLight');
 
-        // Modal Elements
-        const inputBtn = document.getElementById('inputBtn');
+        function updateStatus(text, state) {
+            statusTextEl.textContent = text;
+            // Map old boolean 'active' to new states if necessary, but we are updating calls
+            statusLightEl.className = 'status-light ' + state;
+        }
+
+        // Init
+        updateStatus("FORKLIFTS IDLE", "ready");
+        // Control Elements
+        const runBtn = document.getElementById('runBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const part1Btn = document.getElementById('part1Btn');
+        const part2Btn = document.getElementById('part2Btn');
         const inputBadge = document.getElementById('inputBadge');
-        const inputModal = document.getElementById('inputModal');
-        const modalInputArea = document.getElementById('modalInputArea');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-        const useExampleBtn = document.getElementById('useExampleBtn');
-        const useCustomBtn = document.getElementById('useCustomBtn');
 
         let isRunning = false;
 
@@ -119,47 +124,67 @@
         }
         updateBadge();
 
-        // Modal Logic
-        function openModal() {
-            modalInputArea.value = isCustom ? currentInput : '';
-            inputModal.classList.add('show');
-        }
-
-        function closeModal() {
-            inputModal.classList.remove('show');
-        }
-
-        function setCustomInput() {
-            const val = modalInputArea.value.trim();
-            if (val) {
-                currentInput = val;
+        // --- Standard Input Modal Handlers ---
+        Common.setupInputModal({
+            placeholder: 'Paste your Print Shop grid (e.g., ..@@.@@@@...)',
+            storageKey: STORAGE_KEY,
+            exampleInput: EXAMPLE_INPUT,
+            onLoad: (input) => {
+                currentInput = input;
                 isCustom = true;
-                localStorage.setItem(STORAGE_KEY, val);
                 updateBadge();
-                closeModal();
-                statusTextEl.textContent = "INPUT LOADED";
+                updateStatus("PAPER LOADED", "ready");
+
+                // Optional: Auto-reset or similar? 
+                isRunning = false;
+                runBtn.textContent = '▶ Run';
             }
-        }
-
-        function setExampleInput() {
-            currentInput = EXAMPLE_INPUT;
-            isCustom = false;
-            localStorage.removeItem(STORAGE_KEY);
-            updateBadge();
-            closeModal();
-            statusTextEl.textContent = "EXAMPLE LOADED";
-        }
-
-        inputBtn.addEventListener('click', openModal);
-        closeModalBtn.addEventListener('click', closeModal);
-        useCustomBtn.addEventListener('click', setCustomInput);
-        useExampleBtn.addEventListener('click', setExampleInput);
-        inputModal.addEventListener('click', (e) => {
-            if (e.target === inputModal) closeModal();
         });
 
-        document.getElementById('runPart1').addEventListener('click', () => run(false));
-        document.getElementById('runPart2').addEventListener('click', () => run(true));
+        // Use Example Override (optional if we want explicit control, but Common handles standard use)
+        // If we want the "Use Example" button inside the modal to ALSO update our local state/badge immediately:
+        // The Common.setupInputModal handles the textarea value. 
+        // When "Load Data" is clicked in modal, onLoad is fired. 
+        // If user clicks "Use Example" in modal, it fills textarea but doesn't auto-load.
+        // So we are good relying on onLoad.
+
+
+        let currentPart = 1; // Track which part is selected
+
+        // Part toggle handlers
+        part1Btn.addEventListener('click', () => {
+            currentPart = 1;
+            part1Btn.classList.add('active');
+            part2Btn.classList.remove('active');
+            resetBtn.click();
+        });
+
+        part2Btn.addEventListener('click', () => {
+            currentPart = 2;
+            part2Btn.classList.add('active');
+            part1Btn.classList.remove('active');
+            resetBtn.click();
+        });
+
+        // Control handlers
+        runBtn.addEventListener('click', () => {
+            if (isRunning) {
+                isRunning = false;
+                runBtn.textContent = '▶ Run';
+                updateStatus('JAMMED', 'paused');
+            } else {
+                run(currentPart === 2);
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            isRunning = false;
+            gridContainer.innerHTML = '';
+            queueSizeEl.textContent = '0';
+            removedCountEl.textContent = '0';
+            updateStatus(currentPart === 1 ? 'PRINTER READY' : 'PRE-PROCESSING', 'ready');
+            runBtn.textContent = '▶ Run';
+        });
 
         function run(part2) {
             const input = currentInput;
@@ -170,7 +195,7 @@
 
         async function solve(input, part2) {
             isRunning = true;
-            statusTextEl.textContent = "INITIALIZING";
+            updateStatus("WARMING UP...", "running");
 
             const lines = input.trim().split('\n').map(l => l.trim().split(''));
             const rows = lines.length;
@@ -217,7 +242,7 @@
             const queue = [];
             let totalRolls = 0;
 
-            statusTextEl.textContent = "SCANNING CONNECTIVITY...";
+            updateStatus(currentPart === 1 ? "SCANNING ROLLS..." : "VALIDATING STOCK...", "running");
 
             // Chunked scan for animation
             const chunkSize = Math.max(1, Math.floor(rows / 20));
@@ -265,13 +290,13 @@
             removedCountEl.textContent = '0';
 
             if (!part2) {
-                statusTextEl.textContent = "PART 1 COMPLETE";
+                updateStatus("TARGET FOUND!", "complete");
                 // Flash success
                 return;
             }
 
             // Phase 2: Wavefront Removal
-            statusTextEl.textContent = "PROCESSING WAVEFRONT";
+            updateStatus("CLEARING STOCK...", "running");
             await new Promise(r => setTimeout(r, 500)); // Pause before removal
 
             let removedCount = 0;
@@ -280,7 +305,7 @@
                 if (!isRunning) return;
 
                 if (queue.length === 0) {
-                    statusTextEl.textContent = "COMPLETE - WAVEFRONT DONE";
+                    updateStatus("STOCK CLEARED", "complete");
                     isRunning = false;
                     return;
                 }

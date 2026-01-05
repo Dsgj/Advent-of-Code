@@ -5,47 +5,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advent of Code - Day 09 - Movie Theater</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="main-container">
         <div class="page-header">
-            <h1>🎬 MOVIE THEATER TILES 🎬</h1>
-            <div class="subtitle">Finding the Largest Rectangle • Red Tile Corners</div>
-        </div>
-
-        <a href="../index.html" class="home-link">← Calendar</a>
-        <style>
-            .home-link {
-                position: fixed;
-                top: 1rem;
-                left: 1rem;
-                z-index: 1000;
-                background: #1a0f0f;
-                color: #cc3344;
-                border: 1px solid #cc3344;
-                padding: 0.5rem 1rem;
-                border-radius: 4px;
-                text-decoration: none;
-                font-family: sans-serif;
-                text-transform: uppercase;
-                font-weight: bold;
-                box-shadow: 0 0 10px rgba(204, 51, 68, 0.4);
-                transition: all 0.2s;
-            }
-
-            .home-link:hover {
-                background: #cc3344;
-                color: #fff;
-                box-shadow: 0 0 20px rgba(204, 51, 68, 0.8);
-            }
-        </style>
-
-        <div class="top-controls">
-
-            <button id="part1Btn" class="mode-btn active-mode">🎬 Part 1</button>
-            <button id="part2Btn" class="mode-btn">🎭 Part 2</button>
+            <div class="header-row">
+                <a href="../index.html" class="home-link">← Calendar</a>
+                <div class="header-center">
+                    <h1>🎬 MOVIE THEATER TILES 🎬</h1>
+                    <div class="subtitle">Finding the Largest Rectangle • Red Tile Corners</div>
+                </div>
+                <div class="header-right">
+                    <div class="status-panel-header">
+                        <div class="status-light" id="statusLight"></div>
+                        <span class="status-text text-glow" id="statusText">PREMIERE READY</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-controls">
+                <button id="part1Btn" class="active">Part 1</button>
+                <button id="part2Btn">Part 2</button>
+                <button id="inputBtn">⌨ Input</button>
+            </div>
         </div>
 
         <div class="content-area">
@@ -54,11 +38,6 @@
             </div>
 
             <div class="stats-sidebar">
-                <div class="stats-panel">
-                    <div class="panel-title">Status</div>
-                    <div id="statusText" class="status-text">Ready</div>
-                </div>
-
                 <div class="stats-panel">
                     <div class="panel-title">Statistics</div>
                     <div class="stat-row">
@@ -74,7 +53,6 @@
                         <span class="stat-val gold" id="bestArea">0</span>
                     </div>
                 </div>
-
                 <div class="stats-panel">
                     <div class="panel-title">Current Rectangle</div>
                     <div class="current-rect-info" id="currentRectInfo">
@@ -101,42 +79,30 @@
                             <div class="legend-dot" style="background: #ffd700; box-shadow: 0 0 6px #d4a726;"></div>
                             <span>Best Rect</span>
                         </div>
+
+                    </div>
+                </div>
+                <div class="stats-panel">
+                    <div class="panel-title">Controls</div>
+                    <div class="bottom-controls">
+                        <div class="control-group">
+                            <button id="runBtn">▶ Run</button>
+                            <button id="stepBtn">⏭ Step</button>
+                            <button id="resetBtn">🔄 Reset</button>
+                        </div>
+                        <div class="speed-control">
+                            <label>Speed</label>
+                            <input type="range" id="speedSlider" min="1" max="100" value="70">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="bottom-controls">
-            <div class="control-group">
-                <button id="runBtn">▶ Run</button>
-                <button id="stepBtn">⏭ Step</button>
-                <button id="resetBtn">🔄 Reset</button>
-                <button id="inputBtn">📂 Load</button>
-            </div>
-            <div class="speed-control">
-                <label>Speed</label>
-                <input type="range" id="speedSlider" min="1" max="100" value="70">
-            </div>
-        </div>
     </div>
 
-    <!-- Modal -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal">
-            <h2>🎬 Tile Coordinates</h2>
-            <p>Paste your puzzle input (X,Y per line)</p>
-            <textarea id="modalInputArea" placeholder="7,1
-11,1
-11,7
-..."></textarea>
-            <div class="modal-buttons">
-                <button id="useExampleBtn">🎁 Example</button>
-                <button id="useCustomBtn" class="active-mode">✨ Load</button>
-                <button id="closeModalBtn">Cancel</button>
-            </div>
-        </div>
-    </div>
+    <!-- Input Modal handled by common.js -->
 
+    <script src="../common.js"></script>
     <script>
         const EXAMPLE_INPUT = `7,1
 11,1
@@ -148,7 +114,7 @@
 7,3`;
 
         // STATE
-        let rawInput = localStorage.getItem('day09_input') || EXAMPLE_INPUT;
+        let rawInput = EXAMPLE_INPUT;
         let points = [];
         let segments = [];
         let currentMode = 1;
@@ -171,12 +137,18 @@
         const pairCountEl = document.getElementById('pairCount');
         const bestAreaEl = document.getElementById('bestArea');
         const statusText = document.getElementById('statusText');
+        const statusLight = document.getElementById('statusLight');
+
+        function updateStatus(text, state) {
+            statusText.textContent = text;
+            statusLight.className = 'status-light ' + state;
+        }
         const currentRectInfo = document.getElementById('currentRectInfo');
         const runBtn = document.getElementById('runBtn');
         const speedSlider = document.getElementById('speedSlider');
         const part1Btn = document.getElementById('part1Btn');
         const part2Btn = document.getElementById('part2Btn');
-        const inputModal = document.getElementById('inputModal');
+
 
         function parseInput(input) {
             const lines = input.trim().split(/\r?\n/);
@@ -349,11 +321,19 @@
             pairIndex = 0;
             bestRect = null;
             bestArea = 0;
-            currentRect = null;
-
-            updateStats();
-            statusText.textContent = "Ready - Click Run!";
+            updateStatus(currentMode === 1 ? "SCANNER READY" : "VALIDATOR READY", 'ready');
             runBtn.textContent = '▶ Run';
+
+            Common.setupInputModal({
+                placeholder: '7,1\n11,1...',
+                storageKey: 'day09_input',
+                exampleInput: EXAMPLE_INPUT,
+                onLoad: (data) => {
+                    rawInput = data;
+                    localStorage.setItem('day09_input', rawInput);
+                    parseAndReset();
+                }
+            });
         }
 
         let lastTime = 0;
@@ -363,14 +343,20 @@
             const dt = timestamp - lastTime;
             lastTime = timestamp;
 
-            if (isRunning && pairIndex < pairs.length) {
-                const speed = parseInt(speedSlider.value);
-                const interval = Math.max(10, 300 - speed * 2.8);
-                timeSinceStep += dt;
+            if (isRunning) {
+                if (pairIndex >= pairs.length) {
+                    isRunning = false;
+                    updateStatus(currentMode === 1 ? "SCAN COMPLETE" : "VALIDATION COMPLETE", 'complete');
+                    runBtn.textContent = '▶ Run';
+                } else {
+                    const speed = parseInt(speedSlider.value);
+                    const interval = Math.max(10, 300 - speed * 2.8);
+                    timeSinceStep += dt;
 
-                if (timeSinceStep >= interval) {
-                    step();
-                    timeSinceStep = 0;
+                    if (timeSinceStep >= interval) {
+                        step();
+                        timeSinceStep = 0;
+                    }
                 }
             }
 
@@ -378,10 +364,25 @@
             requestAnimationFrame(loop);
         }
 
+        function toggleRun() {
+            if (isRunning) {
+                stopAnimation();
+                updateStatus(currentMode === 1 ? "SCAN PAUSED" : "VALIDATION PAUSED", 'paused');
+                runBtn.innerHTML = '<i class="fas fa-play"></i> Run';
+            } else {
+                startAnimation();
+            }
+        }
+        function startAnimation() {
+            isRunning = true;
+            runBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+            updateStatus(currentMode === 1 ? "SCANNING AREA..." : "VERIFYING PATHS...", 'running');
+            // animationFrame = requestAnimationFrame(step); // This line was commented out in the original, keeping it that way.
+        }
         function step() {
             if (pairIndex >= pairs.length) {
                 isRunning = false;
-                statusText.textContent = "✨ Complete!";
+                updateStatus(currentMode === 1 ? "SCAN COMPLETE" : "VALIDATION COMPLETE", 'complete');
                 runBtn.textContent = '▶ Run';
                 return;
             }
@@ -595,12 +596,12 @@
             if (isRunning) {
                 isRunning = false;
                 runBtn.textContent = '▶ Run';
-                statusText.textContent = 'Paused';
+                updateStatus(currentMode === 1 ? "SCAN PAUSED" : "VALIDATION PAUSED", 'paused');
             } else {
                 if (pairIndex >= pairs.length) parseAndReset();
                 isRunning = true;
                 runBtn.textContent = '⏸ Pause';
-                statusText.textContent = 'Running...';
+                updateStatus(currentMode === 1 ? "SCANNING AREA..." : "VERIFYING PATHS...", 'running');
             }
         });
 

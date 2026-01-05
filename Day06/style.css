@@ -58,7 +58,7 @@ body {
 /* Main Layout Structure (Inspired by Day 2) */
 .main-screen {
   width: 100%;
-  max-width: 1400px;
+  max-width: 1200px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -103,11 +103,56 @@ body {
   opacity: 0.5;
 }
 
-/* Header Section */
-header {
-  text-align: center;
-  padding: 20px 0 10px 0;
+/* Header Section - theme-specific overrides */
+.page-header {
+  padding: 20px 10px 10px 10px;
   flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Header Status */
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.compact-status {
+  border: 1px solid var(--neon-cyan);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
+}
+
+.compact-status .status-label {
+  color: var(--dim-text);
+  font-size: 0.75rem;
+}
+
+.compact-status .status-val {
+  color: var(--neon-cyan);
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.85rem;
+}
+
+.compact-status .status-val.active {
+  color: var(--neon-pink);
+  text-shadow: 0 0 5px var(--neon-pink);
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+    text-shadow: 0 0 10px var(--neon-pink);
+  }
 }
 
 h1 {
@@ -379,7 +424,7 @@ button.active-mode {
   color: var(--neon-purple);
   text-shadow: 0 0 10px var(--neon-purple);
   font-weight: bold;
-  transform: scale(1.2);
+  transform: scale(0.9);
   z-index: 10;
   position: relative;
 }
@@ -454,4 +499,23 @@ textarea:focus {
   justify-content: flex-end;
   gap: 10px;
   background: rgba(0, 0, 0, 0.2);
+}
+
+.home-link {
+  justify-self: start;
+  color: #64ffda;
+  text-decoration: none;
+  font-family: "Share Tech Mono", monospace;
+  background: rgba(10, 25, 47, 0.9);
+  border: 1px solid #64ffda;
+  padding: 5px 10px;
+  display: inline-block;
+  box-shadow: 0 0 10px rgba(100, 255, 218, 0.2);
+  transition: all 0.3s;
+}
+
+.home-link:hover {
+  box-shadow: 0 0 20px rgba(100, 255, 218, 0.6);
+  transform: scale(0.95);
+  color: #fff;
 }

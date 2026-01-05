@@ -5,52 +5,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advent of Code - Day 10 - Factory</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="main-container">
         <header class="page-header">
-            <h1>🏭 Factory Control Panel 🔧</h1>
-            <p class="subtitle">Day 10: Indicator Light & Joltage Configuration</p>
+            <div class="header-row">
+                <a href="../index.html" class="home-link">← Calendar</a>
+                <div class="header-center">
+                    <h1>🏭 Factory Control Panel 🔧</h1>
+                    <p class="subtitle">Day 10: Indicator Light &amp; Joltage Configuration</p>
+                </div>
+                <div class="header-right">
+                    <div class="status-panel-header">
+                        <div class="status-light" id="statusLight"></div>
+                        <span class="status-text text-glow" id="statusText">SYSTEM IDLE</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-controls">
+                <button id="part1Btn" class="active">Part 1</button>
+                <button id="part2Btn">Part 2</button>
+                <button id="inputBtn">⌨ Input</button>
+            </div>
         </header>
 
-        <a href="../index.html" class="home-link">← Calendar</a>
-        <style>
-            .home-link {
-                position: fixed;
-                top: 1rem;
-                left: 1rem;
-                z-index: 1000;
-                background: #2d2b55;
-                color: #fad000;
-                border: 2px solid #fad000;
-                padding: 0.5rem 1rem;
-                border-radius: 6px;
-                text-decoration: none;
-                font-weight: bold;
-                font-family: sans-serif;
-                box-shadow: 0 4px 0 #b39500;
-                transition: all 0.1s;
-            }
 
-            .home-link:hover {
-                transform: translateY(2px);
-                box-shadow: 0 2px 0 #b39500;
-            }
-        </style>
-
-        <div class="top-controls">
-
-            <button id="loadInputBtn">📥 Load Input</button>
-            <button id="resetBtn">🔄 Reset</button>
-            <div class="button-group">
-                <button id="part1Btn" class="active-mode">💡 Part 1: Lights</button>
-                <button id="part2Btn">⚡ Part 2: Joltage</button>
-            </div>
-            <button id="solveBtn">⚡ Solve All</button>
-            <button id="stepBtn">👆 Step</button>
-        </div>
 
         <div class="content-area">
             <div class="viz-panel" id="machinesContainer">
@@ -86,7 +68,13 @@
                 </div>
 
                 <div class="stats-panel">
-                    <div class="panel-title">Speed</div>
+                    <div class="panel-title">Controls</div>
+                    <div class="control-buttons">
+                        <button id="solveBtn">⚡ Solve All</button>
+                        <button id="stepBtn">👆 Step</button>
+                        <button id="resetBtn">🔄 Reset</button>
+                    </div>
+                    <div class="panel-title" style="margin-top: 10px;">Speed</div>
                     <div class="speed-control">
                         <label>🐢</label>
                         <input type="range" id="speedSlider" min="1" max="10" value="7">
@@ -97,21 +85,9 @@
         </div>
     </div>
 
-    <!-- Input Modal -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal">
-            <h2>📥 Load Puzzle Input</h2>
-            <p>Paste your puzzle input below:</p>
-            <textarea id="inputText" placeholder="[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
-[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
-..."></textarea>
-            <div class="modal-buttons">
-                <button id="useExampleBtn">Use Example</button>
-                <button id="loadBtn">Load</button>
-                <button id="cancelBtn">Cancel</button>
-            </div>
-        </div>
-    </div>
+    <!-- Input Modal handled by common.js -->
+
+    <script src="../common.js"></script>
 
     <script>
         const EXAMPLE_INPUT = `[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
@@ -124,6 +100,17 @@
         let solving = false;
         let animationTimeout = null;
         let currentMode = 'lights'; // 'lights' or 'joltage'
+        let solveTimer = null; // Added for auto-solving
+
+        const statusTextEl = document.getElementById('statusText');
+        const statusLightEl = document.getElementById('statusLight');
+
+        function updateStatus(text, state) {
+            if (statusTextEl) statusTextEl.textContent = text;
+            if (statusLightEl) {
+                statusLightEl.className = 'status-light ' + state;
+            }
+        }
 
         // Rational Number Class for Part 2 Solver
         class Rat {
@@ -654,6 +641,7 @@
 
             currentMachineIndex = 0;
             totalPresses = 0;
+            updateStatus("PRODUCTION READY", "ready");
             solving = false;
 
             renderMachines();
@@ -662,19 +650,28 @@
             localStorage.setItem('day10Input', input);
         }
 
+        function stopSolving() {
+            if (solveTimer) {
+                clearInterval(solveTimer);
+                solveTimer = null;
+            }
+            solving = false; // Changed from isSolving to solving
+            updateStatus("HALTED", "paused");
+            document.getElementById('solveBtn').textContent = '⚡ Solve All'; // Added this line
+        }
+
         function reset() {
             if (animationTimeout) {
                 clearTimeout(animationTimeout);
                 animationTimeout = null;
             }
-            solving = false;
-            document.getElementById('solveBtn').textContent = '⚡ Solve All';
+            stopSolving(); // Use the new stopSolving function
+            updateStatus("PRODUCTION READY", "ready");
 
             machines.forEach(machine => {
                 if (currentMode === 'lights') {
                     machine.currentLightState = new Array(machine.targetState.length).fill(false);
                     machine.pressedButtons1 = new Set();
-                    machine.solved1 = false;
                 } else {
                     machine.currentCounts = machine.targetCounts ? new Array(machine.targetCounts.length).fill(0) : [];
                     machine.pressedButtons2 = new Map();
@@ -745,6 +742,7 @@
 
             solving = true;
             document.getElementById('solveBtn').textContent = '⏹ Stop';
+            updateStatus(currentMode === 'lights' ? "PRODUCTION ACTIVE" : "CALCULATING RATINGS...", "running");
 
             reset();
             solving = true; // Reset sets it to false
@@ -762,6 +760,7 @@
 
             solving = false;
             document.getElementById('solveBtn').textContent = '⚡ Solve All';
+            updateStatus(currentMode === 'lights' ? "PRODUCTION COMPLETE" : "RATINGS CALCULATED", "complete");
         }
 
         function step() {
@@ -833,26 +832,18 @@
         }
 
         // Event Listeners
-        document.getElementById('loadInputBtn').onclick = () => { document.getElementById('inputModal').classList.add('show'); };
-        document.getElementById('cancelBtn').onclick = () => { document.getElementById('inputModal').classList.remove('show'); };
-        document.getElementById('useExampleBtn').onclick = () => { document.getElementById('inputText').value = EXAMPLE_INPUT; };
-        document.getElementById('loadBtn').onclick = () => {
-            const val = document.getElementById('inputText').value;
-            if (val.trim()) {
-                loadMachines(val);
-                document.getElementById('inputModal').classList.remove('show');
+        // Initial Render
+        Common.setupInputModal({
+            placeholder: '[.##.] (3) (1,3)...',
+            storageKey: 'day10Input', // Keeping camelCase as per existing code
+            exampleInput: EXAMPLE_INPUT,
+            onLoad: (data) => {
+                loadMachines(data);
             }
-        };
-        document.getElementById('resetBtn').onclick = reset;
-        document.getElementById('part1Btn').onclick = () => setMode('lights');
-        document.getElementById('part2Btn').onclick = () => setMode('joltage');
-        document.getElementById('solveBtn').onclick = solveAll;
-        document.getElementById('stepBtn').onclick = step;
+        });
 
-        // Init
-        const saved = localStorage.getItem('day10Input');
-        if (saved) loadMachines(saved);
-        else loadMachines(EXAMPLE_INPUT);
+        loadMachines(localStorage.getItem('day10Input') || EXAMPLE_INPUT);
+        updateStats();
 
         updateLegend();
     </script>

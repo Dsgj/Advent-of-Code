@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advent of Code - Day 06 - Trash Compactor</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
     <style>
         /* Ensure font metrics are loaded/stable */
@@ -28,34 +29,26 @@
     <!-- Hidden measure element -->
 
 
-    <a href="../index.html" class="home-link">← Calendar</a>
-    <style>
-        .home-link {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1000;
-            color: #64ffda;
-            text-decoration: none;
-            font-family: 'Share Tech Mono', monospace;
-            background: rgba(10, 25, 47, 0.9);
-            border: 1px solid #64ffda;
-            padding: 5px 10px;
-            display: inline-block;
-            box-shadow: 0 0 10px rgba(100, 255, 218, 0.2);
-            transition: all 0.3s;
-        }
-
-        .home-link:hover {
-            box-shadow: 0 0 20px rgba(100, 255, 218, 0.6);
-            transform: translateY(-2px);
-            color: #fff;
-        }
-    </style>
     <div class="main-screen">
-        <header>
-            <h1>TRASH COMPACTOR</h1>
-            <div class="subtitle">Cephalopod Math Decoder v6.0</div>
+        <header class="page-header">
+            <div class="header-row">
+                <a href="../index.html" class="home-link">← Calendar</a>
+                <div class="header-center">
+                    <h1>TRASH COMPACTOR</h1>
+                    <div class="subtitle">Cephalopod Math Decoder v6.0</div>
+                </div>
+                <div class="header-right">
+                    <div class="status-panel-header">
+                        <div class="status-light" id="statusDot"></div>
+                        <span class="status-text text-glow" id="statusText">SENSORS ONLINE</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-controls">
+                <button id="part1Btn" class="active">Part 1</button>
+                <button id="part2Btn">Part 2</button>
+                <button id="inputBtn">⌨ Input</button>
+            </div>
         </header>
 
         <div class="content-wrapper">
@@ -75,16 +68,7 @@
             <!-- Right Panel: Sidebar -->
             <div class="sidebar-panel">
 
-                <!-- System Controls -->
-                <div class="control-box">
-                    <div class="section-title">SYSTEM MODE</div>
-                    <div class="btn-grid">
-                        <button id="part1Btn" class="active-mode">PART 1 (HORIZ)</button>
-                        <button id="part2Btn">PART 2 (VERT)</button>
-                        <button id="inputBtn" class="btn-full">LOAD INPUT DATA</button>
-                    </div>
-                </div>
-
+                <!-- Execution Controls -->
                 <div class="control-box">
                     <div class="section-title">EXECUTION</div>
                     <div class="btn-grid">
@@ -125,23 +109,9 @@
         </div>
     </div>
 
-    <!-- Input Modal -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>INPUT DATA STREAM</h2>
-            </div>
-            <div class="modal-body">
-                <textarea id="modalInputArea" placeholder="Paste your puzzle input here..."></textarea>
-            </div>
-            <div class="modal-footer">
-                <button id="useExampleBtn">LOAD EXAMPLE</button>
-                <button id="useCustomBtn" class="active-mode">LOAD CUSTOM</button>
-                <button id="closeModalBtn">CANCEL</button>
-            </div>
-        </div>
-    </div>
+    <!-- Input Modal handled by common.js -->
 
+    <script src="../common.js"></script>
     <script>
         // --- DATA ---
         const EXAMPLE_INPUT = `123 328  51 64 
@@ -175,13 +145,15 @@
         const speedSlider = document.getElementById('speedSlider');
 
         // Modal
-        const inputModal = document.getElementById('inputModal');
-        const inputBtn = document.getElementById('inputBtn');
-        const modalInputArea = document.getElementById('modalInputArea');
-        const useExampleBtn = document.getElementById('useExampleBtn');
-        const useCustomBtn = document.getElementById('useCustomBtn');
-        const closeModalBtn = document.getElementById('closeModalBtn');
         const charMeasure = document.getElementById('charMeasure');
+        const statusText = document.getElementById('statusText');
+
+        const statusDot = document.getElementById('statusDot');
+
+        function updateStatus(text, state) {
+            if (statusText) statusText.textContent = text;
+            if (statusDot) statusDot.className = 'status-light ' + state;
+        }
 
         // --- INIT ---
         function init() {
@@ -219,6 +191,7 @@
             else queuePart2();
 
             blocksQueuedEl.textContent = blocks.length;
+            updateStatus(currentPart === 1 ? "SENSORS ONLINE" : "COMPACTOR READY", "ready");
         }
 
         function identifyBlockRanges() {
@@ -501,20 +474,29 @@
                 runBtn.textContent = 'FINISHED';
                 isRunning = false;
                 highlightOverlay.style.display = 'none';
+                updateStatus("STREAM CLEAR", "complete");
             }
         }
 
         // --- CONTROLS ---
         function startAnimation() {
             if (animationQueue.length === 0) return;
+            if (animationQueue.length === 0) { // This condition is redundant if the previous one is kept. Assuming the user meant to replace.
+                isRunning = false;
+                runBtn.textContent = '▶ RUN';
+                updateStatus("HOMEWORK DONE", "complete");
+                return;
+            }
             isRunning = true;
             runBtn.textContent = '⏸ PAUSE';
+            updateStatus(currentPart === 1 ? "COMPACTING..." : "DEFRAGMENTING...", "running");
             runStep();
         }
 
         function stopAnimation() {
             isRunning = false;
             runBtn.textContent = '▶ RUN';
+            updateStatus("DOOR OPENED", "ready");
             if (timer) clearTimeout(timer);
         }
 
@@ -554,26 +536,16 @@
         };
 
         // Modal Handlers
-        inputBtn.onclick = () => {
-            inputModal.classList.add('show');
-            modalInputArea.value = rawInput;
-        };
-        closeModalBtn.onclick = () => inputModal.classList.remove('show');
-        useExampleBtn.onclick = () => {
-            rawInput = EXAMPLE_INPUT;
-            localStorage.removeItem('day06_input');
-            inputModal.classList.remove('show');
-            parseAndReset();
-        };
-        useCustomBtn.onclick = () => {
-            const val = modalInputArea.value;
-            if (val) {
-                rawInput = val;
-                localStorage.setItem('day06_input', val);
-                inputModal.classList.remove('show');
+        Common.setupInputModal({
+            placeholder: 'Paste your trash stream...',
+            storageKey: 'day06_input',
+            exampleInput: EXAMPLE_INPUT,
+            onLoad: (data) => {
+                rawInput = data;
+                localStorage.setItem('day06_input', rawInput); // Common.js sets it, but ensuring sync
                 parseAndReset();
             }
-        };
+        });
 
         window.onload = init;
 

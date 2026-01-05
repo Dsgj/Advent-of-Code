@@ -62,19 +62,26 @@ body::after {
   display: grid;
   grid-template-rows: auto 1fr auto; /* Header, Main, Footer/Controls */
   height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
   padding: 20px;
   gap: 15px;
   position: relative;
   z-index: 1;
 }
 
-/* Header */
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Header - theme-specific overrides */
+.page-header {
   border-bottom: 2px solid var(--reactor-dim);
   padding-bottom: 10px;
+}
+
+.header-right {
+  font-size: 0.8rem;
+  color: var(--reactor-dim);
+  /* display: block; Reset flex - REMOVED for standard status panel */
+  text-align: right;
 }
 
 h1 {
@@ -91,6 +98,14 @@ h1 {
   text-transform: uppercase;
   border: 1px solid var(--reactor-dim);
   padding: 4px 8px;
+  display: inline-block;
+  margin-top: 5px;
+}
+
+#clock {
+  font-size: 0.75rem;
+  color: var(--reactor-dim);
+  letter-spacing: 1px;
 }
 
 /* Main Content Area */
@@ -287,6 +302,7 @@ button.active-mode {
 
 input[type="range"] {
   -webkit-appearance: none;
+  appearance: none;
   background: var(--reactor-dim);
   height: 4px;
   border-radius: 2px;
@@ -341,4 +357,25 @@ textarea {
   font-family: monospace;
   padding: 10px;
   margin: 10px 0;
+}
+
+.home-link {
+  justify-self: start;
+  background: rgba(0, 20, 0, 0.9);
+  color: var(--reactor-cyan);
+  border: 1px solid var(--reactor-cyan);
+  padding: 0.5rem 1rem;
+  border-radius: 2px;
+  text-decoration: none;
+  font-family: "Share Tech Mono", monospace;
+  font-weight: bold;
+  text-transform: uppercase;
+  transition: all 0.3s;
+}
+
+.home-link:hover {
+  background: var(--reactor-cyan);
+  color: var(--reactor-black);
+  box-shadow: 0 0 10px var(--reactor-cyan);
+  transform: scale(0.95);
 }

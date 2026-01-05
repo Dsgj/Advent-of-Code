@@ -89,14 +89,11 @@ body {
   padding: 12px;
   box-sizing: border-box;
   width: 100%;
-  max-width: 1600px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.page-header {
   padding: 12px 24px;
   background: var(--panel-bg);
   border: 2px solid var(--panel-border);
@@ -107,7 +104,7 @@ header {
 }
 
 /* String lights decoration on header */
-header::before {
+.page-header::before {
   content: "● ● ● ● ● ● ● ● ● ● ●";
   position: absolute;
   top: 0;
@@ -452,8 +449,315 @@ textarea:focus {
 }
 
 /* Header status styles */
-#headerStatus {
+.header-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 250px; /* Ensure space */
+}
+
+.status-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(25, 15, 35, 0.6);
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.status-box .status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--light-blue);
+  box-shadow: 0 0 8px var(--light-blue);
+  animation: pulse 2s infinite;
+}
+
+.status-box .status-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--light-white);
+  letter-spacing: 0.05em;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+}
+
+.home-link {
+  justify-self: start;
+  align-self: start;
+  color: #ffd700;
+  text-decoration: none;
+  font-family: sans-serif;
+  background: #15101d;
+  border: 1px solid #444;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+  text-transform: uppercase;
+  transition: all 0.3s;
+}
+
+.home-link:hover {
+  transform: scale(0.95);
+  background: #2a1f35;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+}
+
+/* Header Controls Theme Styling */
+.header-controls {
+  background: transparent;
+  border-top: none;
+  padding: 10px 0 0 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.header-controls button {
+  background: rgba(30, 20, 45, 0.9);
+  border: 1px solid var(--light-blue);
+  color: var(--light-blue);
+  padding: 8px 16px;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.header-controls button:hover {
+  background: rgba(102, 204, 255, 0.15);
+  box-shadow: 0 0 12px rgba(102, 204, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.header-controls button.active {
+  background: linear-gradient(
+    135deg,
+    rgba(102, 204, 255, 0.2),
+    rgba(255, 204, 0, 0.1)
+  );
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+}
+
+/* Control Buttons in Sidebar */
+.control-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-buttons button {
+  width: 100%;
+  padding: 10px;
+  background: rgba(30, 20, 45, 0.9);
+  border: 1px solid var(--light-blue);
+  color: var(--light-blue);
+  font-size: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.control-buttons button:hover {
+  background: rgba(102, 204, 255, 0.15);
+  box-shadow: 0 0 10px rgba(102, 204, 255, 0.4);
+}
+
+/* --- Extracted from HTML --- */
+/* Contained Layout */
+.main-container {
+  width: 100%;
+  max-width: 1200px;
+  height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0 auto;
+}
+
+/* Header Overrides */
+.page-header {
+  text-align: center;
+}
+
+.page-header h1 {
+  font-size: 2rem;
+  margin-bottom: 4px;
+}
+
+.page-header .subtitle {
+  font-size: 0.85rem;
+}
+
+/* Part Toggle at top */
+.top-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mode-btn {
+  padding: 10px 20px;
+  font-size: 0.8rem;
+}
+
+/* Main content area */
+.content-area {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 400px;
+}
+
+/* 3D Canvas Panel */
+.viz-panel {
+  flex: 1;
+  background: radial-gradient(ellipse at center, #15101d 0%, #0a0610 100%);
+  border: 3px solid var(--panel-border);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.viz-panel canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Right sidebar with stats */
+.stats-sidebar {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stats-panel {
+  background: var(--panel-bg);
+  border: 2px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--toy-yellow);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-title::before {
+  content: "◆";
+  font-size: 8px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.stat-val {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1rem;
+  color: var(--light-white);
+}
+
+.stat-val.gold {
+  color: var(--light-gold);
+  text-shadow: 0 0 8px rgba(255, 204, 0, 0.5);
+}
+
+/* Circuit Legend */
+.circuit-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.circuit-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  font-size: 0.7rem;
+}
+
+.circuit-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Bottom controls */
+.bottom-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  display: flex;
+  gap: 8px;
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.speed-control label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.speed-control input[type="range"] {
+  width: 100px;
 }

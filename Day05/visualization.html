@@ -5,121 +5,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advent of Code - Day 05 - Cafeteria</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <a href="../index.html" class="home-link">← Calendar</a>
-    <style>
-        .home-link {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1000;
-            background: #2d3748;
-            color: #fff;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            text-decoration: none;
-            font-weight: bold;
-            font-family: sans-serif;
-            border-left: 4px solid #48bb78;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            transition: all 0.2s;
-        }
-
-        .home-link:hover {
-            transform: translateX(2px);
-            background: #4a5568;
-        }
-    </style>
-    <h1>CAFETERIA INVENTORY SYSTEM</h1>
-    <p class="subtitle">Validating Ingredients & Managing Spoilage</p>
+    <header class="page-header">
+        <div class="header-row">
+            <a href="../index.html" class="home-link">← Calendar</a>
+            <div class="header-center">
+                <h1>CAFETERIA INVENTORY SYSTEM</h1>
+                <p class="subtitle">Validating Ingredients &amp; Managing Spoilage</p>
+            </div>
+            <div class="header-right">
+                <div class="status-panel-header">
+                    <div class="status-light" id="statusDot"></div>
+                    <span class="status-text text-glow" id="statusText">KITCHEN OPEN</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-controls">
+            <button id="part1Btn" class="active">Part 1</button>
+            <button id="part2Btn">Part 2</button>
+            <button id="inputBtn">⌨ Input <span id="inputBadge" class="input-badge">EX</span></button>
+        </div>
+    </header>
 
     <div class="container">
-        <!-- Control Panel -->
-        <div class="panel">
-            <div class="panel-header">SYSTEM CONTROLS</div>
-            <div class="controls">
-                <button id="part1Btn" class="active-mode">MODE: ITEM CHECK (PT 1)</button>
-                <button id="part2Btn">MODE: RANGE MERGE (PT 2)</button>
-            </div>
-            <div class="controls">
-                <button id="runBtn">▶ RUN PROCESS</button>
-                <button id="stepBtn">⏯ STEP</button>
-                <button id="resetBtn">↺ RESET</button>
-                <button id="inputBtn">INPUT DATA <span id="inputBadge" class="input-badge">EX</span></button>
-                <div class="speed-control">
-                    <label>SPEED</label>
-                    <input type="range" id="speedSlider" min="1" max="100" value="50">
+        <div class="main-content">
+            <div class="viz-area">
+                <!-- Part 1 Display -->
+                <div id="part1Panel" class="panel">
+                    <div class="panel-header">INGREDIENT VALIDATION (PART 1)</div>
+                    <p style="color:var(--dim-text); margin-bottom:10px;">Verify individual IDs against known fresh
+                        ranges.</p>
+                    <div class="grid-container" id="itemGrid">
+                        <!-- Items injected here -->
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Part 1 Display -->
-        <div id="part1Panel" class="panel">
-            <div class="panel-header">INGREDIENT VALIDATION (PART 1)</div>
-            <p style="color:var(--dim-text); margin-bottom:10px;">Verify individual IDs against known fresh ranges.</p>
-            <div class="grid-container" id="itemGrid">
-                <!-- Items injected here -->
-            </div>
-            <div class="stats">
-                <div class="stat-item">
-                    <div class="stat-label">Processed</div>
-                    <div class="stat-value" id="p1Processed">0</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Fresh</div>
-                    <div class="stat-value" style="color:var(--fresh-green)" id="p1Fresh">0</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Spoiled</div>
-                    <div class="stat-value" style="color:var(--spoiled-red)" id="p1Spoiled">0</div>
+                <!-- Part 2 Display -->
+                <div id="part2Panel" class="panel" style="display:none;">
+                    <div class="panel-header">RANGE OPTIMIZATION (PART 2)</div>
+                    <p style="color:var(--dim-text); margin-bottom:10px;">Sort and merge overlapping fresh ranges.</p>
+                    <div class="p2-split-container">
+                        <div class="list-col">
+                            <div class="col-header">Sorted Source</div>
+                            <div id="sourceList" class="scrollable-list"></div>
+                        </div>
+                        <div class="list-col">
+                            <div class="col-header">Merged Results</div>
+                            <div id="mergedList" class="scrollable-list"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Part 2 Display -->
-        <div id="part2Panel" class="panel" style="display:none;">
-            <div class="panel-header">RANGE OPTIMIZATION (PART 2)</div>
-            <p style="color:var(--dim-text); margin-bottom:10px;">Sort and merge overlapping fresh ranges.</p>
-            <div class="p2-split-container">
-                <div class="list-col">
-                    <div class="col-header">Sorted Source</div>
-                    <div id="sourceList" class="scrollable-list"></div>
+            <div class="sidebar">
+                <!-- Stats Panel -->
+                <div class="stats-panel" id="part1Stats">
+                    <div class="panel-title">📊 PART 1 STATS</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Processed</span>
+                        <span class="stat-value" id="p1Processed">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Fresh</span>
+                        <span class="stat-value fresh" id="p1Fresh">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Spoiled</span>
+                        <span class="stat-value spoiled" id="p1Spoiled">0</span>
+                    </div>
                 </div>
-                <div class="list-col">
-                    <div class="col-header">Merged Results</div>
-                    <div id="mergedList" class="scrollable-list"></div>
-                </div>
-            </div>
-            <div class="stats">
-                <div class="stat-item">
-                    <div class="stat-label">Merged Ranges</div>
-                    <div class="stat-value" id="p2MergedCount">0</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Total Fresh IDs</div>
-                    <div class="stat-value" style="color:var(--fresh-green)" id="p2TotalFresh">0</div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Input Modal -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal">
-            <h2>INPUT DATA INPUT</h2>
-            <textarea id="modalInputArea" placeholder="Paste your puzzle input here..."></textarea>
-            <div class="modal-btns">
-                <button id="useExampleBtn">LOAD EXAMPLE</button>
-                <button id="useCustomBtn" style="border-color:var(--warning-orange); color:var(--warning-orange)">LOAD
-                    CUSTOM</button>
-                <button id="closeModalBtn" style="border-color:var(--dim-text); color:var(--dim-text)">CANCEL</button>
+                <div class="stats-panel" id="part2Stats" style="display:none;">
+                    <div class="panel-title">📊 PART 2 STATS</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Merged Ranges</span>
+                        <span class="stat-value" id="p2MergedCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Total Fresh IDs</span>
+                        <span class="stat-value fresh" id="p2TotalFresh">0</span>
+                    </div>
+                </div>
+
+                <!-- Controls Panel -->
+                <div class="stats-panel">
+                    <div class="panel-title">⚙ CONTROLS</div>
+                    <div class="control-buttons">
+                        <button id="runBtn">▶ RUN</button>
+                        <button id="stepBtn">⏭ STEP</button>
+                        <button id="resetBtn">🔄 RESET</button>
+                    </div>
+                    <div class="speed-control">
+                        <label>Speed</label>
+                        <input type="range" id="speedSlider" min="1" max="100" value="50">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Input Modal handled by common.js -->
+
+    <script src="../common.js"></script>
     <script>
         // --- DATA ---
         const EXAMPLE_INPUT = `3-5
@@ -143,6 +134,7 @@
         let animationQueue = [];
         let isRunning = false;
         let timer = null;
+        let animationId = null; // For requestAnimationFrame
 
         // --- DOM ---
         const part1Btn = document.getElementById('part1Btn');
@@ -166,12 +158,17 @@
         const sourceList = document.getElementById('sourceList');
         const mergedList = document.getElementById('mergedList');
 
-        const inputModal = document.getElementById('inputModal');
-        const modalInputArea = document.getElementById('modalInputArea');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-        const useExampleBtn = document.getElementById('useExampleBtn');
-        const useCustomBtn = document.getElementById('useCustomBtn');
+
         const inputBadge = document.getElementById('inputBadge');
+        const statusTextEl = document.getElementById('statusText');
+        const statusDotEl = document.getElementById('statusDot');
+
+        function updateStatus(text, state) {
+            if (statusTextEl) statusTextEl.textContent = text;
+            if (statusDotEl) {
+                statusDotEl.className = 'status-light ' + state;
+            }
+        }
 
         // --- INIT ---
         function init() {
@@ -340,6 +337,7 @@
         function runStep() {
             if (animationQueue.length === 0) {
                 stopAnimation();
+                updateStatus("LUNCH SERVED", "complete"); // Changed status
                 return;
             }
 
@@ -462,14 +460,20 @@
         }
 
         function toggleRun() {
-            if (isRunning) stopAnimation();
-            else startAnimation();
+            if (isRunning) {
+                stopAnimation();
+                updateStatus("SERVICE PAUSED", "paused");
+            } else {
+                startAnimation();
+            }
         }
 
         function startAnimation() {
             if (animationQueue.length === 0) return;
             isRunning = true;
             runBtn.textContent = '⏸ PAUSE';
+            const runMsg = currentMode === 1 ? "CHECKING STOCK..." : "COOKING...";
+            updateStatus(runMsg, "running");
             runStep();
         }
 
@@ -477,6 +481,7 @@
             isRunning = false;
             runBtn.textContent = '▶ RUN PROCESS';
             if (timer) clearTimeout(timer);
+            // Don't overwrite updateStatus here if called from toggleRun explicitly
         }
 
         // --- HANDLERS ---
@@ -506,35 +511,19 @@
         resetBtn.onclick = parseAndReset;
 
         // Modal
-        inputBtn.onclick = () => {
-            inputModal.classList.add('show');
-            modalInputArea.value = isCustom ? rawInput : '';
-        };
-
-        closeModalBtn.onclick = () => inputModal.classList.remove('show');
-
-        useExampleBtn.onclick = () => {
-            rawInput = EXAMPLE_INPUT;
-            isCustom = false;
-            localStorage.removeItem('day5_input');
-            inputBadge.textContent = 'EX';
-            inputBadge.classList.remove('custom');
-            inputModal.classList.remove('show');
-            parseAndReset();
-        };
-
-        useCustomBtn.onclick = () => {
-            const val = modalInputArea.value.trim();
-            if (val) {
-                rawInput = val;
+        // Modal Handlers
+        Common.setupInputModal({
+            placeholder: 'Paste your puzzle input here...',
+            storageKey: 'day5_input',
+            exampleInput: EXAMPLE_INPUT,
+            onLoad: (data) => {
+                rawInput = data;
                 isCustom = true;
-                localStorage.setItem('day5_input', rawInput);
                 inputBadge.textContent = 'CUSTOM';
                 inputBadge.classList.add('custom');
-                inputModal.classList.remove('show');
                 parseAndReset();
             }
-        };
+        });
 
         // Start
         init();

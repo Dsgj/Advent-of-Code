@@ -61,22 +61,22 @@ body {
   padding: 10px;
   box-sizing: border-box;
   width: 100%;
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-header {
-  height: var(--header-height);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
+/* Header - theme-specific overrides */
+.page-header {
+  height: auto;
+  padding: 10px 20px;
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   margin-bottom: 10px;
   box-shadow: 0 0 20px rgba(153, 51, 255, 0.1);
   backdrop-filter: blur(5px);
+  display: flex;
+  flex-direction: column;
 }
 
 h1 {
@@ -289,4 +289,66 @@ textarea {
 
 .viz-area canvas {
   display: block;
+}
+
+.home-link {
+  justify-self: start;
+  color: #b19cd9;
+  text-decoration: none;
+  font-family: sans-serif;
+  border: 1px solid #b19cd9;
+  padding: 5px 10px;
+  background: rgba(20, 10, 30, 0.8);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(177, 156, 217, 0.3);
+  transition: all 0.3s;
+}
+
+.home-link:hover {
+  background: rgba(177, 156, 217, 0.2);
+  box-shadow: 0 0 15px rgba(177, 156, 217, 0.6);
+  transform: scale(0.95);
+}
+
+/* Header Controls Theme Styling */
+.header-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  background: transparent;
+  border-top: none;
+  padding: 10px 20px;
+  margin-top: 0;
+}
+
+.header-controls button {
+  background: rgba(20, 10, 35, 0.8);
+  border: 1px solid rgba(153, 51, 255, 0.5);
+  color: #b19cd9;
+  padding: 10px 20px;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.header-controls button:hover {
+  background: rgba(153, 51, 255, 0.2);
+  border-color: var(--portal-magenta);
+  color: var(--portal-magenta);
+  box-shadow: 0 0 15px rgba(153, 51, 255, 0.4);
+}
+
+.header-controls button.active {
+  background: linear-gradient(
+    135deg,
+    rgba(153, 51, 255, 0.25),
+    rgba(255, 0, 170, 0.15)
+  );
+  border-color: var(--portal-magenta);
+  color: var(--portal-magenta);
+  box-shadow: 0 0 12px rgba(153, 51, 255, 0.5);
 }

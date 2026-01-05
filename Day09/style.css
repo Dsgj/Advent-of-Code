@@ -336,6 +336,57 @@ body {
   color: var(--text-dim);
 }
 
+/* Header Status Display */
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.theater-status {
+  background: #000;
+  border: 2px solid var(--curtain-gold);
+  border-radius: 30px; /* Ticket/Marquee shape? Rounded */
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 0 15px rgba(212, 167, 38, 0.3);
+}
+
+.theater-status .status-text {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  color: var(--curtain-gold);
+  text-shadow: 0 0 8px rgba(212, 167, 38, 0.5);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.status-light-theater {
+  width: 12px;
+  height: 12px;
+  background: #444;
+  border-radius: 50%;
+  border: 2px solid #666;
+}
+
+.status-light-theater.active {
+  background: var(--popcorn-yellow);
+  border-color: #fff;
+  box-shadow: 0 0 15px var(--popcorn-yellow), 0 0 5px #fff;
+  animation: projectorFlicker 0.2s infinite alternate;
+}
+
+@keyframes projectorFlicker {
+  from {
+    opacity: 0.8;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .top-controls {
   display: flex;
   justify-content: center;
@@ -374,6 +425,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
+  max-height: 100%;
+  flex-shrink: 0;
 }
 
 .stats-panel {
@@ -492,4 +546,79 @@ body {
 .status-text {
   color: var(--popcorn-yellow);
   font-size: 0.85rem;
+}
+
+/* Header Layout - theme-specific overrides */
+.page-header {
+  padding: 1.5rem;
+  background: linear-gradient(
+    180deg,
+    var(--theater-burgundy) 0%,
+    transparent 100%
+  );
+  border-bottom: 2px solid var(--curtain-gold);
+  margin-bottom: 20px;
+}
+
+.home-link {
+  justify-self: start;
+  align-self: start;
+  background: var(--theater-dark);
+  color: var(--curtain-gold);
+  border: 1px solid var(--curtain-gold);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 0.9rem;
+  box-shadow: 0 0 10px rgba(212, 167, 38, 0.2);
+  transition: all 0.2s;
+}
+
+.home-link:hover {
+  background: var(--curtain-gold);
+  color: var(--theater-dark);
+  box-shadow: 0 0 20px rgba(212, 167, 38, 0.6);
+  transform: scale(0.95);
+}
+
+/* Bottom Controls Panel */
+.bottom-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+.bottom-controls .control-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.bottom-controls .control-group button {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+}
+
+.bottom-controls .speed-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.bottom-controls .speed-control label {
+  color: var(--curtain-gold);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.bottom-controls .speed-control input[type="range"] {
+  flex: 1;
+  max-width: 100px;
 }

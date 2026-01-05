@@ -5,42 +5,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advent of Code - Day 07 - Multiverse Rift</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <a href="../index.html" class="home-link">← Calendar</a>
-    <style>
-        .home-link {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1000;
-            color: #b19cd9;
-            text-decoration: none;
-            font-family: sans-serif;
-            border: 1px solid #b19cd9;
-            padding: 5px 10px;
-            background: rgba(20, 10, 30, 0.8);
-            border-radius: 4px;
-            box-shadow: 0 0 10px rgba(177, 156, 217, 0.3);
-            transition: all 0.3s;
-        }
-
-        .home-link:hover {
-            background: rgba(177, 156, 217, 0.2);
-            box-shadow: 0 0 15px rgba(177, 156, 217, 0.6);
-        }
-    </style>
     <div class="main-screen">
-        <header>
-            <div>
-                <h1>MULTIVERSE RIFT</h1>
-                <div class="subtitle">QUANTUM MANIFOLD ENTANGLEMENT SYSTEM</div>
+        <header class="page-header">
+            <div class="header-row">
+                <a href="../index.html" class="home-link">← Calendar</a>
+                <div class="header-center">
+                    <h1>MULTIVERSE RIFT</h1>
+                    <div class="subtitle">QUANTUM MANIFOLD ENTANGLEMENT SYSTEM</div>
+                </div>
+                <div class="header-right">
+                    <div class="status-panel-header">
+                        <div class="status-light" id="statusLight"></div>
+                        <span class="status-text text-glow" id="statusText">STABLE</span>
+                    </div>
+                </div>
             </div>
-            <div style="text-align: right;">
-                <div class="subtitle">RIFT STATUS</div>
-                <div style="color:var(--text-main); font-family:var(--font-mono);" id="headerStatus">STABLE</div>
+            <div class="header-controls">
+                <button id="part1Btn" class="active">Part 1</button>
+                <button id="part2Btn">Part 2</button>
+                <button id="inputBtn">⌨ Input</button>
             </div>
         </header>
 
@@ -53,16 +41,6 @@
 
             <div class="sidebar-panel">
                 <div class="panel-box">
-                    <div class="section-title">REALITY MODE</div>
-                    <div class="btn-grid">
-                        <button id="part1Btn" class="active-mode">PART 1<br><span
-                                style="font-size:0.55rem; opacity:0.7">SPLIT EVENTS</span></button>
-                        <button id="part2Btn">PART 2<br><span style="font-size:0.55rem; opacity:0.7">TIMELINE
-                                BRANCHES</span></button>
-                    </div>
-                </div>
-
-                <div class="panel-box">
                     <div class="section-title">RIFT CONTROL</div>
                     <div class="btn-grid">
                         <button id="runBtn">▶ ENGAGE</button>
@@ -73,11 +51,6 @@
                         <label class="stat-label">TEMPORAL DILATION</label>
                         <input type="range" id="speedSlider" min="1" max="100" value="75">
                     </div>
-                </div>
-
-                <div class="panel-box">
-                    <div class="section-title">MANIFOLD DATA</div>
-                    <button id="inputBtn" class="btn-full">INJECT CONFIGURATION</button>
                 </div>
 
                 <div class="panel-box" style="flex-grow: 1;">
@@ -109,22 +82,9 @@
         </div>
     </div>
 
-    <!-- Modal -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal">
-            <h2
-                style="color:var(--wavefront-purple); margin-top:0; border-bottom:1px solid #333; padding-bottom:10px; font-family:var(--font-display);">
-                MANIFOLD INJECTION</h2>
-            <p style="font-size:0.75rem; color:var(--text-dim);">Paste grid configuration.</p>
-            <textarea id="modalInputArea" placeholder=".......S......."></textarea>
-            <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button id="useExampleBtn">EXAMPLE</button>
-                <button id="useCustomBtn" class="active-mode">INJECT</button>
-                <button id="closeModalBtn">CANCEL</button>
-            </div>
-        </div>
-    </div>
+    <!-- Input Modal handled by common.js -->
 
+    <script src="../common.js"></script>
     <script>
         const EXAMPLE_INPUT = `.......S.......
 ...............
@@ -192,17 +152,30 @@
         const resultDisplay = document.getElementById('resultDisplay');
         const resultLabel = document.getElementById('resultLabel');
         const modeDisplay = document.getElementById('modeDisplay');
-        const headerStatus = document.getElementById('headerStatus');
+        const statusLight = document.getElementById('statusLight');
+        const statusText = document.getElementById('statusText');
         const runBtn = document.getElementById('runBtn');
         const speedSlider = document.getElementById('speedSlider');
         const part1Btn = document.getElementById('part1Btn');
         const part2Btn = document.getElementById('part2Btn');
-        const inputModal = document.getElementById('inputModal');
-        const inputBtn = document.getElementById('inputBtn');
-        const modalInputArea = document.getElementById('modalInputArea');
-        const useExampleBtn = document.getElementById('useExampleBtn');
-        const useCustomBtn = document.getElementById('useCustomBtn');
-        const closeModalBtn = document.getElementById('closeModalBtn');
+
+
+        // Part Switch Logic
+        part1Btn.addEventListener('click', () => {
+            if (currentMode === 1) return;
+            currentMode = 1;
+            part1Btn.classList.add('active');
+            part2Btn.classList.remove('active');
+            parseAndReset();
+        });
+
+        part2Btn.addEventListener('click', () => {
+            if (currentMode === 2) return;
+            currentMode = 2;
+            part2Btn.classList.add('active');
+            part1Btn.classList.remove('active');
+            parseAndReset();
+        });
 
         // INIT
         function init() {
@@ -280,8 +253,7 @@
             }
 
             updateStats();
-            headerStatus.textContent = "STABLE";
-            headerStatus.style.color = "var(--particle-cyan)";
+            updateStatus(currentMode === 1 ? "STABLE" : "QUANTUM FLUX", 'ready');
             runBtn.textContent = '▶ ENGAGE';
             resizeCanvas();
         }
@@ -369,8 +341,7 @@
 
         function stepSimulation() {
             if (beams.length === 0 && timelineCounts.size === 0) {
-                headerStatus.textContent = "COLLAPSED";
-                headerStatus.style.color = "var(--singularity-gold)";
+                updateStatus("COLLAPSED", 'complete');
                 stopAnimation();
                 return;
             }
@@ -938,19 +909,22 @@
         }
 
         // CONTROLS
+        function updateStatus(text, state) {
+            statusText.textContent = text;
+            statusLight.className = 'status-light ' + state;
+        }
+
         function startAnimation() {
             if (beams.length === 0 && resultCount > 0) parseAndReset();
             isRunning = true;
-            runBtn.textContent = '⏸ PAUSE';
-            headerStatus.textContent = "ACTIVE";
-            headerStatus.style.color = "var(--portal-magenta)";
+            runBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+            updateStatus(currentMode === 1 ? "ACTIVE" : "ENTANGLED", 'running');
         }
 
         function stopAnimation() {
             isRunning = false;
             runBtn.textContent = '▶ ENGAGE';
-            headerStatus.textContent = "PAUSED";
-            headerStatus.style.color = "var(--singularity-orange)";
+            updateStatus("PAUSED", 'paused');
         }
 
         runBtn.onclick = () => isRunning ? stopAnimation() : startAnimation();
@@ -970,23 +944,16 @@
             parseAndReset();
         };
 
-        inputBtn.onclick = () => { inputModal.classList.add('show'); modalInputArea.value = rawInput; };
-        closeModalBtn.onclick = () => inputModal.classList.remove('show');
-        useExampleBtn.onclick = () => {
-            rawInput = EXAMPLE_INPUT;
-            localStorage.removeItem('day07_input');
-            inputModal.classList.remove('show');
-            parseAndReset();
-        };
-        useCustomBtn.onclick = () => {
-            const val = modalInputArea.value;
-            if (val) {
-                rawInput = val;
-                localStorage.setItem('day07_input', val);
-                inputModal.classList.remove('show');
+        Common.setupInputModal({
+            placeholder: '.......S.......',
+            storageKey: 'day07_input',
+            exampleInput: EXAMPLE_INPUT,
+            onLoad: (data) => {
+                rawInput = data;
+                localStorage.setItem('day07_input', rawInput);
                 parseAndReset();
             }
-        };
+        });
 
         window.onload = init;
     </script>

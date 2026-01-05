@@ -5,40 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Day 2 - Gift Shop ID Scanner</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
 
-<a href="../index.html" class="home-link">[ ← RETURN ]</a>
-<style>
-    .home-link {
-        position: fixed;
-        top: 1rem;
-        left: 1rem;
-        z-index: 1000;
-        color: var(--crt-green);
-        background: rgba(0, 20, 0, 0.9);
-        padding: 8px 12px;
-        text-decoration: none;
-        font-family: 'Courier New', monospace;
-        border: 1px solid var(--crt-green);
-        text-shadow: 0 0 5px var(--crt-dim);
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-        font-weight: bold;
-        font-size: 14px;
-    }
-
-    .home-link:hover {
-        background: var(--crt-green);
-        color: #000;
-        box-shadow: 0 0 15px var(--crt-green);
-    }
-</style>
-
 <div class="crt-screen">
     <div class="header">
-        <pre
-            style="color: var(--crt-green); font-size: 9px; line-height: 1.1; text-shadow: 0 0 10px var(--crt-glow); text-align: center;">
+        <div class="header-row">
+            <a href="../index.html" class="home-link">[ ← RETURN ]</a>
+            <div class="header-center">
+                <pre
+                    style="color: var(--crt-green); font-size: 9px; line-height: 1.1; text-shadow: 0 0 10px var(--crt-glow); text-align: center;">
 ╔════════════════════════════════════════════════════════════════════╗
 ║                                                                    ║
 ║  ██████╗ ██╗███████╗████████╗    ███████╗██╗  ██╗ ██████╗ ██████╗  ║
@@ -49,19 +27,20 @@
 ║  ╚═════╝ ╚═╝╚═╝        ╚═╝       ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝      ║
 ╚══════════════════════ DATABASE SCANNER v2.0 ═══════════════════════╝
 </pre>
-    </div>
-
-    <div class="controls">
-
-        <button class="btn active" data-part="1">Part 1</button>
-        <button class="btn" data-part="2">Part 2</button>
-        <span style="width: 20px;"></span>
-        <button class="btn" id="btnRun">▶ RUN</button>
-        <button class="btn" id="btnStep">STEP</button>
-        <button class="btn" id="btnReset">RESET</button>
-        <span style="width: 20px;"></span>
-        <button class="btn" id="btnInput">⚙ INPUT</button>
-        <span class="input-indicator" id="inputIndicator">[EXAMPLE]</span>
+            </div>
+            <div class="header-right">
+                <div class="status-panel-header">
+                    <div class="status-light" id="status-light"></div>
+                    <span class="status-text text-glow" id="status-text">REGISTER OPEN</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-controls">
+            <button class="btn active" data-part="1">Part 1</button>
+            <button class="btn" data-part="2">Part 2</button>
+            <button class="btn" id="inputBtn">⚙ INPUT</button>
+            <span class="input-indicator" id="inputIndicator">[EXAMPLE]</span>
+        </div>
     </div>
 
     <div class="main-content">
@@ -101,6 +80,12 @@
                     <span class="value" id="currentPattern">-</span>
                 </div>
 
+                <div class="control-buttons">
+                    <button class="btn" id="btnRun">▶ RUN</button>
+                    <button class="btn" id="btnStep">STEP</button>
+                    <button class="btn" id="btnReset">RESET</button>
+                </div>
+
                 <div class="speed-row">
                     <span>Speed:</span>
                     <input type="range" id="speedSlider" min="1" max="100" value="70">
@@ -111,36 +96,10 @@
     </div>
 </div>
 
-<!-- Input Modal -->
-<div class="modal-overlay" id="inputModal">
-    <div class="modal">
-        <div class="modal-header">╔══ CUSTOM INPUT ══╗</div>
-        <div class="modal-body">
-            <label>Paste your puzzle input below (format: start-end,start-end,...)</label>
-            <textarea id="customInput" placeholder="11-22,95-115,998-1012,..."></textarea>
-        </div>
-        <div class="modal-footer">
-            <button class="btn" id="btnUseInput">USE INPUT</button>
-            <button class="btn" id="btnUseExample">USE EXAMPLE</button>
-            <button class="btn" id="btnCloseModal">CLOSE</button>
-        </div>
-    </div>
-</div>
-
+<script src="../common.js"></script>
 <script>
     const EXAMPLE_INPUT = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
     const STORAGE_KEY = 'day2_custom_input';
-
-    let currentInput = localStorage.getItem(STORAGE_KEY) || EXAMPLE_INPUT;
-    let usingCustom = localStorage.getItem(STORAGE_KEY) !== null;
-
-    let currentPart = 1;
-    let ranges = [];
-    let isRunning = false;
-    let animationTimeout = null;
-    let queueIndex = 0;
-    let animationQueue = [];
-    let runningTotal = 0n;
 
     const visualizer = document.getElementById('visualizer');
     const currentRangeEl = document.getElementById('currentRange');
@@ -152,63 +111,60 @@
     const btnStep = document.getElementById('btnStep');
     const btnReset = document.getElementById('btnReset');
     const speedSlider = document.getElementById('speedSlider');
-
-    // Modal elements
-    const inputModal = document.getElementById('inputModal');
-    const customInputEl = document.getElementById('customInput');
     const inputIndicator = document.getElementById('inputIndicator');
-    const btnInput = document.getElementById('btnInput');
-    const btnUseInput = document.getElementById('btnUseInput');
-    const btnUseExample = document.getElementById('btnUseExample');
-    const btnCloseModal = document.getElementById('btnCloseModal');
+
+    // Initialize Global Input Modal
+    Common.setupInputModal({
+        placeholder: '11-22,95-115,998-1012,...',
+        storageKey: STORAGE_KEY,
+        exampleInput: EXAMPLE_INPUT,
+        onLoad: (data) => {
+            currentInput = data;
+            usingCustom = true;
+            updateInputIndicator();
+            init();
+        }
+    });
+
+    let currentInput = Common.getInput(STORAGE_KEY, EXAMPLE_INPUT);
+    let usingCustom = localStorage.getItem(STORAGE_KEY) !== null;
+
+    let currentPart = 1;
+    let ranges = [];
+    let isRunning = false;
+    let animationTimeout = null;
+    let queueIndex = 0;
+    let animationQueue = [];
+    let runningTotal = 0n;
 
     function updateInputIndicator() {
         if (usingCustom) {
             inputIndicator.textContent = '[CUSTOM]';
             inputIndicator.classList.add('custom');
+            // If global modal logic managed the badge automatically, we might not need this, 
+            // but Day 02 has a specific separate indicator element.
+            // SetupInputModal updates #inputBadge, but Day 02 uses #inputIndicator.
         } else {
-            inputIndicator.textContent = '[EXAMPLE]';
             inputIndicator.classList.remove('custom');
         }
     }
 
-    function openModal() {
-        customInputEl.value = usingCustom ? currentInput : '';
-        inputModal.classList.add('show');
+    function updateStatus(text, state) {
+        const statusText = document.getElementById('status-text');
+        const statusLight = document.getElementById('status-light');
+        if (statusText) statusText.textContent = text;
+        if (statusLight) statusLight.className = 'status-light ' + state;
     }
 
-    function closeModal() {
-        inputModal.classList.remove('show');
-    }
-
-    function useCustomInput() {
-        const input = customInputEl.value.trim();
-        if (input) {
-            currentInput = input;
-            usingCustom = true;
-            localStorage.setItem(STORAGE_KEY, input);
-            updateInputIndicator();
-            closeModal();
-            init();
-        }
-    }
-
-    function useExampleInput() {
-        currentInput = EXAMPLE_INPUT;
-        usingCustom = false;
-        localStorage.removeItem(STORAGE_KEY);
-        updateInputIndicator();
-        closeModal();
-        init();
-    }
-
-    btnInput.addEventListener('click', openModal);
-    btnCloseModal.addEventListener('click', closeModal);
-    btnUseInput.addEventListener('click', useCustomInput);
-    btnUseExample.addEventListener('click', useExampleInput);
-    inputModal.addEventListener('click', (e) => {
-        if (e.target === inputModal) closeModal();
-    });
+    // Modal is handled by Common.js automatically binding to #inputBtn (which Day 02 calls #btnInput)
+    // Wait, Day 02 button ID is 'btnInput'. Common.js expects 'inputBtn'.
+    // I need to rename the ID in HTML or handle it manually.
+    // Changing ID in HTML is cleaner.
+    // But 'btnInput' is inside .header-controls.
+    // Let's ensure the ID matches Common.js expectation.
+    // Or I can pass button ID to Common? SetupInputModal doesn't seem to take button ID option currently.
+    // It looks for document.getElementById("inputBtn").
+    // So I will change the button ID in HTML to 'inputBtn'.
 
     updateInputIndicator();
 
@@ -464,8 +420,8 @@
 
     function step() {
         if (queueIndex >= animationQueue.length) {
+            // Already handled by 'complete' case usually, but just in case
             isRunning = false;
-            btnRun.textContent = '▶ RUN';
             return false;
         }
 
@@ -523,6 +479,7 @@
                 visualizer.scrollTop = visualizer.scrollHeight;
                 isRunning = false;
                 btnRun.textContent = '▶ RUN';
+                updateStatus('AUDIT COMPLETE', 'complete');
                 break;
         }
         return true;
@@ -551,16 +508,19 @@
         currentPatternEl.textContent = '-';
         visualizer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--crt-dim);">Press [RUN] to start analysis</div>';
         clearTimeout(animationTimeout);
+        updateStatus('AWAITING QUERY', 'ready');
     }
 
-    btnRun.addEventListener('click', () => {
+    btnRun.addEventListener('click', async function runScan() {
         if (isRunning) {
             isRunning = false;
             clearTimeout(animationTimeout);
             btnRun.textContent = '▶ RUN';
+            updateStatus('CONNECTION HELD', 'paused');
         } else {
             isRunning = true;
-            btnRun.textContent = '⏸ PAUSE';
+            const scanMsg = currentPart === 1 ? "SCANNING RANGES..." : "CHECKING PATTERNS...";
+            updateStatus(scanMsg, 'running');
             logicalLoop();
         }
     });

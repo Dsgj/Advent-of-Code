@@ -5,269 +5,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advent of Code - Day 08 - Playground</title>
+    <link rel="stylesheet" href="../common.css">
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Contained Layout */
-        body {
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
-        }
 
-        .main-container {
-            width: 100%;
-            max-width: 1200px;
-            height: calc(100vh - 40px);
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        /* Header */
-        .page-header {
-            text-align: center;
-        }
-
-        .page-header h1 {
-            font-size: 2rem;
-            margin-bottom: 4px;
-        }
-
-        .page-header .subtitle {
-            font-size: 0.85rem;
-        }
-
-        /* Part Toggle at top */
-        .top-controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .mode-btn {
-            padding: 10px 20px;
-            font-size: 0.8rem;
-        }
-
-        /* Main content area */
-        .content-area {
-            display: flex;
-            gap: 16px;
-            flex: 1;
-            min-height: 400px;
-        }
-
-        /* 3D Canvas Panel */
-        .viz-panel {
-            flex: 1;
-            background: radial-gradient(ellipse at center, #15101d 0%, #0a0610 100%);
-            border: 3px solid var(--panel-border);
-            border-radius: 16px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .viz-panel canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Right sidebar with stats */
-        .stats-sidebar {
-            width: 200px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .stats-panel {
-            background: var(--panel-bg);
-            border: 2px solid var(--panel-border);
-            border-radius: 12px;
-            padding: 14px;
-        }
-
-        .panel-title {
-            font-family: var(--font-display);
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: var(--toy-yellow);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .panel-title::before {
-            content: "◆";
-            font-size: 8px;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 0;
-            border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
-        }
-
-        .stat-row:last-child {
-            border-bottom: none;
-        }
-
-        .stat-label {
-            font-size: 0.7rem;
-            color: var(--text-dim);
-        }
-
-        .stat-val {
-            font-family: var(--font-display);
-            font-weight: 700;
-            font-size: 1rem;
-            color: var(--light-white);
-        }
-
-        .stat-val.gold {
-            color: var(--light-gold);
-            text-shadow: 0 0 8px rgba(255, 204, 0, 0.5);
-        }
-
-        /* Circuit Legend */
-        .circuit-legend {
-            display: flex;
-            flex-wrap: wrap;
-            align-content: flex-start;
-            gap: 4px;
-            overflow-y: auto;
-        }
-
-        .circuit-chip {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 3px 8px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            font-size: 0.7rem;
-        }
-
-        .circuit-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        /* Status badge */
-        .status-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 0;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--light-blue);
-            box-shadow: 0 0 6px var(--light-blue);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        .status-text {
-            font-family: var(--font-display);
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-
-        /* Bottom controls */
-        .bottom-controls {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .control-group {
-            display: flex;
-            gap: 8px;
-        }
-
-        .speed-control {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .speed-control label {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-        }
-
-        .speed-control input[type="range"] {
-            width: 100px;
-        }
-    </style>
 </head>
 
 <body>
-    <a href="../index.html" class="home-link">← Calendar</a>
-    <style>
-        .home-link {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-            color: #ffd700;
-            text-decoration: none;
-            font-family: sans-serif;
-            background: #15101d;
-            border: 1px solid #444;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.2s;
-        }
-
-        .home-link:hover {
-            border-color: #ffd700;
-            box-shadow: 0 0 10px #ffd700;
-        }
-    </style>
     <div class="main-container">
         <!-- Header -->
         <div class="page-header">
-            <h1>🎄 STRING LIGHTS 🎄</h1>
-            <div class="subtitle">Underground Playground · Junction Box Network</div>
-        </div>
-
-        <!-- Part Toggle -->
-        <div class="top-controls">
-            <button id="part1Btn" class="mode-btn active-mode">🎄 Part 1</button>
-            <button id="part2Btn" class="mode-btn">⭐ Part 2</button>
+            <div class="header-row">
+                <a href="../index.html" class="home-link">← Calendar</a>
+                <div class="header-center">
+                    <h1>🎄 STRING LIGHTS 🎄</h1>
+                    <div class="subtitle">Underground Playground · Junction Box Network</div>
+                </div>
+                <div class="header-right">
+                    <div class="status-panel-header">
+                        <div class="status-light" id="statusLight"></div>
+                        <span class="status-text text-glow" id="statusText">RIGGING LIGHTS</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-controls">
+                <button id="part1Btn" class="active">Part 1</button>
+                <button id="part2Btn">Part 2</button>
+                <button id="inputBtn">⌨ Input</button>
+            </div>
         </div>
 
         <!-- Main Content: Canvas + Stats Sidebar -->
@@ -280,13 +44,7 @@
             <!-- Stats Sidebar -->
             <div class="stats-sidebar">
                 <!-- Status -->
-                <div class="stats-panel">
-                    <div class="panel-title">Status</div>
-                    <div class="status-row">
-                        <div class="status-dot" id="statusDot"></div>
-                        <span class="status-text" id="headerStatus">Ready to Wire!</span>
-                    </div>
-                </div>
+                <!-- Status moved to header -->
 
                 <!-- Stats -->
                 <div class="stats-panel">
@@ -315,42 +73,27 @@
                     <div class="panel-title">Circuits</div>
                     <div class="circuit-legend" id="circuitLegend" style="flex: 1; min-height: 0;"></div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Bottom Controls -->
-        <div class="bottom-controls">
-            <div class="control-group">
-                <button id="runBtn">💡 Wire Up!</button>
-                <button id="stepBtn">⏭ Step</button>
-                <button id="resetBtn">🔄 Reset</button>
-                <button id="inputBtn">📦 Load</button>
-            </div>
-            <div class="speed-control">
-                <label>Speed</label>
-                <input type="range" id="speedSlider" min="1" max="100" value="80">
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal">
-            <h2
-                style="color:var(--light-green); margin-top:0; border-bottom:2px solid #3d2255; padding-bottom:12px; font-family:var(--font-display);">
-                📦 Junction Box Coordinates</h2>
-            <p style="font-size:0.8rem; color:var(--text-dim);">Paste your puzzle input (X,Y,Z per line)</p>
-            <textarea id="modalInputArea" placeholder="162,817,812
-57,618,57
-906,360,560"></textarea>
-            <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button id="useExampleBtn">🎁 Example</button>
-                <button id="useCustomBtn" class="active-mode">✨ Load</button>
-                <button id="closeModalBtn">Cancel</button>
+                <!-- Controls -->
+                <div class="stats-panel">
+                    <div class="panel-title">Controls</div>
+                    <div class="control-buttons">
+                        <button id="runBtn">💡 Wire Up!</button>
+                        <button id="stepBtn">⏭ Step</button>
+                        <button id="resetBtn">🔄 Reset</button>
+                    </div>
+                    <div class="speed-control">
+                        <label>Speed</label>
+                        <input type="range" id="speedSlider" min="1" max="100" value="80">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Input Modal handled by common.js -->
+
+    <script src="../common.js"></script>
     <script>
         const EXAMPLE_INPUT = `162,817,812
 57,618,57
@@ -373,7 +116,7 @@
 984,92,344
 425,690,689`;
 
-        const REAL_INPUT = localStorage.getItem('day08_input') || '';
+        let rawInput = EXAMPLE_INPUT;
 
         // Generate unique colors for each circuit using HSL
         function generateCircuitColor(index, total) {
@@ -387,7 +130,7 @@
         let circuitColorMap = new Map();
 
         // STATE
-        let rawInput = REAL_INPUT || EXAMPLE_INPUT;
+        // rawInput declared above
         let points = [];
         let pairs = [];
         let uf = null;
@@ -417,18 +160,18 @@
         const connectionCountEl = document.getElementById('connectionCount');
         const circuitCountEl = document.getElementById('circuitCount');
         const resultDisplay = document.getElementById('resultDisplay');
-        const headerStatus = document.getElementById('headerStatus');
-        const statusDot = document.getElementById('statusDot');
+        const statusTextEl = document.getElementById('statusText');
+        const statusLightEl = document.getElementById('statusLight');
+
+        function updateStatus(text, state) {
+            statusTextEl.textContent = text;
+            statusLightEl.className = 'status-light ' + state;
+        }
         const runBtn = document.getElementById('runBtn');
         const speedSlider = document.getElementById('speedSlider');
         const part1Btn = document.getElementById('part1Btn');
         const part2Btn = document.getElementById('part2Btn');
-        const inputModal = document.getElementById('inputModal');
-        const inputBtn = document.getElementById('inputBtn');
-        const modalInputArea = document.getElementById('modalInputArea');
-        const useExampleBtn = document.getElementById('useExampleBtn');
-        const useCustomBtn = document.getElementById('useCustomBtn');
-        const closeModalBtn = document.getElementById('closeModalBtn');
+
 
         // Union-Find
         class UnionFind {
@@ -536,6 +279,16 @@
             canvas.addEventListener('mouseup', () => isDragging = false);
             canvas.addEventListener('mouseleave', () => isDragging = false);
 
+            Common.setupInputModal({
+                placeholder: '162,817,812...',
+                storageKey: 'day08_input',
+                exampleInput: EXAMPLE_INPUT,
+                onLoad: (data) => {
+                    rawInput = data;
+                    localStorage.setItem('day08_input', rawInput);
+                    parseAndReset();
+                }
+            });
             requestAnimationFrame(loop);
         }
 
@@ -583,8 +336,7 @@
             targetConnections = n > 20 ? 1000 : Math.floor(n / 2);
 
             updateStats();
-            headerStatus.textContent = "Ready to Wire!";
-            statusDot.style.background = "var(--light-blue)";
+            updateStatus("Ready to Wire!", "ready");
             runBtn.textContent = '💡 Wire Up!';
         }
 
@@ -617,8 +369,7 @@
         function stepSimulation() {
             if (currentMode === 1) {
                 if (connectionsMade >= targetConnections || connectionsMade >= pairs.length) {
-                    headerStatus.textContent = "✨ All Lit Up!";
-                    statusDot.style.background = "var(--light-green)";
+                    updateStatus("✨ All Lit Up!", "complete");
                     stopAnimation();
                     return;
                 }
@@ -628,8 +379,7 @@
                 connectionsMade++;
             } else {
                 if (uf.getNumCircuits() === 1) {
-                    headerStatus.textContent = "🎄 One Big Circuit!";
-                    statusDot.style.background = "var(--light-gold)";
+                    updateStatus("🎄 One Big Circuit!", "complete");
                     stopAnimation();
                     return;
                 }
@@ -758,9 +508,7 @@
 
             drawStars();
 
-            if (points.length === 0) return;
 
-            // Circuit colors - use the stable color map
             const getPointColor = (pointIndex) => {
                 if (!uf) return 'hsl(0, 70%, 60%)';
                 const root = uf.find(pointIndex);
@@ -842,8 +590,8 @@
 
         function startAnimation() {
             isRunning = true;
-            headerStatus.textContent = "⚡ Wiring...";
-            statusDot.style.background = "var(--light-gold)";
+            statusTextEl.textContent = currentMode === 0 ? "⚡ Wiring..." : "🎄 Lighting Up...";
+            statusLedEl.className = 'status-light running';
             runBtn.textContent = '⏸ Pause';
         }
 
