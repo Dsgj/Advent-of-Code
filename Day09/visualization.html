@@ -613,28 +613,7 @@
 
         document.getElementById('resetBtn').addEventListener('click', parseAndReset);
 
-        document.getElementById('inputBtn').addEventListener('click', () => {
-            document.getElementById('modalInputArea').value = rawInput;
-            inputModal.classList.add('show');
-        });
 
-        document.getElementById('closeModalBtn').addEventListener('click', () => {
-            inputModal.classList.remove('show');
-        });
-
-        document.getElementById('useExampleBtn').addEventListener('click', () => {
-            rawInput = EXAMPLE_INPUT;
-            localStorage.removeItem('day09_input');
-            inputModal.classList.remove('show');
-            parseAndReset();
-        });
-
-        document.getElementById('useCustomBtn').addEventListener('click', () => {
-            rawInput = document.getElementById('modalInputArea').value;
-            localStorage.setItem('day09_input', rawInput);
-            inputModal.classList.remove('show');
-            parseAndReset();
-        });
 
         part1Btn.addEventListener('click', () => {
             currentMode = 1;

@@ -51,10 +51,8 @@ const Common = {
     // Open Modal
     if (inputBtn) {
       inputBtn.addEventListener("click", () => {
-        const currentInput = localStorage.getItem(options.storageKey);
-        if (currentInput) {
-          modalInputArea.value = currentInput;
-        }
+        // Always open with empty textarea - user must paste or use example
+        modalInputArea.value = "";
         modalOverlay.classList.add("active"); // Use class for display
       });
     }

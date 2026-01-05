@@ -626,25 +626,7 @@
             parseAndReset();
         });
 
-        inputBtn.addEventListener('click', () => {
-            modalInputArea.value = rawInput;
-            inputModal.classList.add('show');
-        });
 
-        useExampleBtn.addEventListener('click', () => {
-            modalInputArea.value = EXAMPLE_INPUT;
-        });
-
-        useCustomBtn.addEventListener('click', () => {
-            rawInput = modalInputArea.value;
-            localStorage.setItem('day08_input', rawInput);
-            inputModal.classList.remove('show');
-            parseAndReset();
-        });
-
-        closeModalBtn.addEventListener('click', () => {
-            inputModal.classList.remove('show');
-        });
 
         init();
     </script>
