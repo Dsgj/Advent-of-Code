@@ -46,14 +46,21 @@ const Common = {
     const useExampleBtn = document.getElementById("useExampleBtn");
     const useCustomBtn = document.getElementById("useCustomBtn");
 
+    // Guard: Only bind events once
+    if (modalOverlay.dataset.initialized) return;
+    modalOverlay.dataset.initialized = "true";
+
     // 3. Bind Events
 
     // Open Modal
     if (inputBtn) {
       inputBtn.addEventListener("click", () => {
-        // Always open with empty textarea - user must paste or use example
-        modalInputArea.value = "";
-        modalOverlay.classList.add("active"); // Use class for display
+        // Load stored custom data if exists, otherwise empty
+        const storedInput = options.storageKey
+          ? localStorage.getItem(options.storageKey)
+          : null;
+        modalInputArea.value = storedInput || "";
+        modalOverlay.classList.add("active");
       });
     }
 
@@ -72,7 +79,10 @@ const Common = {
     // Use Example
     if (useExampleBtn && options.exampleInput) {
       useExampleBtn.addEventListener("click", () => {
-        // Clear textarea to indicate we are using internal example
+        // Clear stored custom data and textarea
+        if (options.storageKey) {
+          localStorage.removeItem(options.storageKey);
+        }
         modalInputArea.value = "";
 
         if (typeof options.onLoad === "function") {
